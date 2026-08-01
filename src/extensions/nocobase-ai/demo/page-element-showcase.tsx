@@ -84,7 +84,7 @@ function PageElementShowcaseContent() {
     title: "Customer health summary",
     kind: "record-detail",
     getContext: () => ({
-      resource: "crm_customers",
+      resource: "customers",
       record: {
         name: customerName,
         plan: "Enterprise",

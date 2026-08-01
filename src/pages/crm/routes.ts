@@ -1,0 +1,16 @@
+export const crmRoutes = {
+  dashboard: "/dashboard",
+  customers: "/customers",
+  customersCreate: "/customers/create",
+  customersEdit: "/customers/edit/:id",
+  customersShow: "/customers/show/:id",
+  pipeline: "/pipeline",
+  dealsCreate: "/pipeline/create",
+  dealsEdit: "/pipeline/edit/:id",
+  activities: "/activities",
+  activitiesCreate: "/activities/create",
+  activitiesEdit: "/activities/edit/:id",
+  followUps: "/follow-ups",
+  followUpsCreate: "/follow-ups/create",
+  followUpsEdit: "/follow-ups/edit/:id",
+} as const;
