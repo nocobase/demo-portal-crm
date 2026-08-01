@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/components/theme/theme-provider";
 import { nocobaseClient } from "@nocobase/portal-sdk/client";
 import {
   DEAL_STAGES,
@@ -26,6 +27,16 @@ import { EnumBadge, useLocale } from "./shared";
 import type { CustomerRecord, DealRecord, FollowUpRecord } from "./types";
 
 type AggregateRow = Record<string, string | number | null>;
+
+// Blue-forward palette shared across the CRM / IT / Helpdesk portals.
+const CHART_COLORS = [
+  "#2563eb",
+  "#0ea5e9",
+  "#14b8a6",
+  "#f59e0b",
+  "#a855f7",
+  "#ef4444",
+];
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -178,19 +189,26 @@ export function DashboardPage() {
     };
   });
 
+  // ECharts renders to canvas and cannot resolve CSS custom properties, so we
+  // pass concrete theme-aware colors instead of var(--...) (which rendered black).
+  const { theme } = useTheme();
+  const axisColor = theme === "dark" ? "#94a3b8" : "#64748b";
+  const gridColor = theme === "dark" ? "rgba(148, 163, 184, 0.18)" : "#e5e7eb";
+
   const chartOption = {
     grid: { left: 8, right: 8, top: 16, bottom: 24, containLabel: true },
-    tooltip: { trigger: "axis" },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     xAxis: {
       type: "category",
       data: byStage.map((stage) => stage.label),
-      axisLine: { lineStyle: { color: "var(--border)" } },
-      axisLabel: { color: "var(--muted-foreground)" },
+      axisLine: { lineStyle: { color: gridColor } },
+      axisTick: { show: false },
+      axisLabel: { color: axisColor },
     },
     yAxis: {
       type: "value",
-      axisLabel: { color: "var(--muted-foreground)" },
-      splitLine: { lineStyle: { color: "var(--border)", opacity: 0.5 } },
+      axisLabel: { color: axisColor },
+      splitLine: { lineStyle: { color: gridColor } },
     },
     series: [
       {
@@ -199,7 +217,7 @@ export function DashboardPage() {
         data: byStage.map((stage, index) => ({
           value: stage.total,
           itemStyle: {
-            color: `var(--chart-${(index % 5) + 1})`,
+            color: CHART_COLORS[index % CHART_COLORS.length],
             borderRadius: [6, 6, 0, 0],
           },
         })),
