@@ -668,4 +668,8 @@ export const starter = {
   "crm.deals.form.aiFillLabel": "Describe the deal",
   "crm.deals.form.aiFillPlaceholder":
     "Example: Brightline Logistics wants 40 telematics units, around 96000 USD. We sent pricing last week and they want to close before the end of next month.",
+  "buildStory.copyBuildPrompt": "Copy build prompt",
+  "buildStory.copyBuildPromptHint": "Copy a prompt that rebuilds this app from scratch with your own coding agent",
+  "buildStory.copyConnectPrompt": "Copy connect prompt",
+  "buildStory.copyConnectPromptHint": "Copy a prompt that connects your coding agent to this instance so it can modify the app",
 } as const;

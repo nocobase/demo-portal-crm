@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "بيانات موثوقة، تحكم في الوصول، سير عمل، وحوكمة.",
   "auth.brand.tagline": "الحرية فوق. الثقة تحت.",
   "auth.brand.headline": "تابع كل حساب من الاستفسار للمكسب",
+  "buildStory.copyBuildPrompt": "نسخ موجه البناء",
+  "buildStory.copyBuildPromptHint": "انسخ موجه يعيد بناء التطبيق ده من الأول باستخدام agent بتاعك",
+  "buildStory.copyConnectPrompt": "نسخ موجه الاتصال",
+  "buildStory.copyConnectPromptHint": "انسخ موجه يربط agent بتاعك بالنسخة دي عشان يعدّل على التطبيق",
 } as const;

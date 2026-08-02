@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "ข้อมูลที่เชื่อถือได้ การควบคุมการเข้าถึง เวิร์กโฟลว์ และการกำกับดูแล",
   "auth.brand.tagline": "อิสระเบื้องบน ความมั่นใจเบื้องล่าง",
   "auth.brand.headline": "ติดตามทุกบัญชีตั้งแต่การสอบถามจนถึงการปิดการขาย",
+  "buildStory.copyBuildPrompt": "คัดลอกพรอมต์ build",
+  "buildStory.copyBuildPromptHint": "คัดลอกพรอมต์สำหรับสร้างแอปนี้ใหม่จากเริ่มต้นด้วย coding agent ของคุณ",
+  "buildStory.copyConnectPrompt": "คัดลอกพรอมต์เชื่อมต่อ",
+  "buildStory.copyConnectPromptHint": "คัดลอกพรอมต์สำหรับเชื่อมต่อ coding agent ของคุณกับอินสแตนซ์นี้ เพื่อให้ agent แก้ไขแอปได้",
 } as const;

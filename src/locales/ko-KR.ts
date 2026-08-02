@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "안정적인 데이터, 접근 제어, 워크플로 및 거버넌스.",
   "auth.brand.tagline": "위는 자유, 아래는 신뢰.",
   "auth.brand.headline": "문의부터 수주까지 모든 계정을 추적하세요.",
+  "buildStory.copyBuildPrompt": "빌드 프롬프트 복사",
+  "buildStory.copyBuildPromptHint": "나만의 coding agent로 이 앱을 처음부터 다시 빌드하는 프롬프트를 복사합니다.",
+  "buildStory.copyConnectPrompt": "연결 프롬프트 복사",
+  "buildStory.copyConnectPromptHint": "coding agent를 이 인스턴스에 연결하여 앱을 수정할 수 있는 프롬프트를 복사합니다.",
 } as const;

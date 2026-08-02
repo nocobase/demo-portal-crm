@@ -644,4 +644,8 @@ export const starter = {
   "crm.deals.form.aiFillLabel": "描述这个商机",
   "crm.deals.form.aiFillPlaceholder":
     "例如：Brightline Logistics 想要 40 台车载终端，约 96000 美元。上周已发报价，希望下月底前签约。",
+  "buildStory.copyBuildPrompt": "复制复刻提示词",
+  "buildStory.copyBuildPromptHint": "复制一段提示词，用你自己的编码 agent 从零复刻这个应用",
+  "buildStory.copyConnectPrompt": "复制接入提示词",
+  "buildStory.copyConnectPromptHint": "复制一段提示词，把你的编码 agent 接入本实例来修改这个应用",
 } as const;

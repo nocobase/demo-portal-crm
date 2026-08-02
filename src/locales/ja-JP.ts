@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "信頼できるデータ、アクセス制御、ワークフロー、ガバナンス。",
   "auth.brand.tagline": "上は自由、下は信頼。",
   "auth.brand.headline": "問い合わせから成約まで、すべてのアカウントを追跡します。",
+  "buildStory.copyBuildPrompt": "ビルドプロンプトをコピー",
+  "buildStory.copyBuildPromptHint": "あなたのコーディング agent でこのアプリをゼロから再構築するプロンプトをコピー",
+  "buildStory.copyConnectPrompt": "接続プロンプトをコピー",
+  "buildStory.copyConnectPromptHint": "コーディング agent をこのインスタンスに接続してアプリを変更するプロンプトをコピー",
 } as const;

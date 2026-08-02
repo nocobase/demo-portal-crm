@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "נתונים אמינים, בקרת גישה, זרימות עבודה וממשל.",
   "auth.brand.tagline": "חופש למעלה. ביטחון למטה.",
   "auth.brand.headline": "עקוב אחר כל חשבון מהפנייה ועד לזכייה.",
+  "buildStory.copyBuildPrompt": "העתק הנחיה לבנייה",
+  "buildStory.copyBuildPromptHint": "העתק הנחיה שבונה מחדש את האפליקציה מאפס עם agent הקידוד שלך",
+  "buildStory.copyConnectPrompt": "העתק הנחיה לחיבור",
+  "buildStory.copyConnectPromptHint": "העתק הנחיה שמחברת את agent הקידוד שלך למופע הזה כדי שיוכל לשנות את האפליקציה",
 } as const;

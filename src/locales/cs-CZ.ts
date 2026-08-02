@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "Spolehlivá data, kontrola přístupu, pracovní postupy a správa.",
   "auth.brand.tagline": "Nahoře svoboda. Dole jistota.",
   "auth.brand.headline": "Sledujte každý účet od poptávky až po vítězství.",
+  "buildStory.copyBuildPrompt": "Kopírovat instrukci pro sestavení",
+  "buildStory.copyBuildPromptHint": "Zkopírujte instrukci, která tuto aplikaci přebuduje od základu pomocí vašeho vlastního programovacího agenta.",
+  "buildStory.copyConnectPrompt": "Kopírovat instrukci pro připojení",
+  "buildStory.copyConnectPromptHint": "Zkopírujte instrukci, která připojí vašeho programovacího agenta k této instanci, aby mohl aplikaci upravovat.",
 } as const;

@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "Dati affidabili, controllo accessi, workflow e governance.",
   "auth.brand.tagline": "Libertà sopra. Affidabilità sotto.",
   "auth.brand.headline": "Tieni traccia di ogni account dalla richiesta alla vittoria.",
+  "buildStory.copyBuildPrompt": "Copia prompt di creazione",
+  "buildStory.copyBuildPromptHint": "Copia un prompt che ricostruisce questa app da zero con il tuo coding agent",
+  "buildStory.copyConnectPrompt": "Copia prompt di connessione",
+  "buildStory.copyConnectPromptHint": "Copia un prompt che collega il tuo coding agent a questa istanza così può modificare l'app",
 } as const;

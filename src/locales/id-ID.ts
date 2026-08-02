@@ -605,4 +605,8 @@ export const starter = {
   "auth.brand.foundationBody": "Data, kontrol akses, alur kerja, dan tata kelola yang andal.",
   "auth.brand.tagline": "Kebebasan di atas. Kepercayaan di bawah.",
   "auth.brand.headline": "Lacak setiap akun dari pertanyaan hingga menang.",
+  "buildStory.copyBuildPrompt": "Salin prompt build",
+  "buildStory.copyBuildPromptHint": "Salin prompt untuk membangun ulang aplikasi ini dari awal dengan coding agent Anda",
+  "buildStory.copyConnectPrompt": "Salin prompt koneksi",
+  "buildStory.copyConnectPromptHint": "Salin prompt yang menghubungkan coding agent Anda ke instance ini sehingga dapat memodifikasi aplikasi",
 } as const;
