@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FOLLOW_UP_STATUSES, labelFor, toDateInputValue } from "../constants";
-import { CustomerPicker } from "../pickers";
+import { CustomerPicker, OwnerPicker } from "../pickers";
 import type { FollowUpFormValues, FollowUpRecord } from "../types";
 
 type Translate = ReturnType<typeof useTranslate>;
@@ -41,6 +41,13 @@ export function FollowUpFormFields({
             value: String(record.customer.id),
             label: record.customer.company_name,
           }
+        : null,
+    [record]
+  );
+  const ownerInitial = useMemo(
+    () =>
+      record?.owner?.nickname
+        ? { value: String(record.owner.id), label: record.owner.nickname }
         : null,
     [record]
   );
@@ -168,6 +175,28 @@ export function FollowUpFormFields({
                   onChange={field.onChange}
                   disabled={Boolean(presetCustomerId)}
                   initialOption={customerInitial}
+                />
+              }
+            />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="ownerId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              {translate("crm.followUps.fields.owner", { ns: "starter" }, "Owner")}
+            </FormLabel>
+            <FormControl
+              render={
+                <OwnerPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  initialOption={ownerInitial}
                 />
               }
             />

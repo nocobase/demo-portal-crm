@@ -19,6 +19,7 @@ import {
   RouteDrawerFooter,
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
+import { CustomerPicker } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { ContactFormValues, ContactRecord } from "../types";
 
@@ -27,12 +28,53 @@ type Translate = ReturnType<typeof useTranslate>;
 function ContactFormFields({
   form,
   translate,
+  record,
+  lockCustomer,
 }: {
   form: UseFormReturn<ContactFormValues>;
   translate: Translate;
+  record?: ContactRecord | null;
+  lockCustomer?: boolean;
 }) {
+  const customerInitial = record?.customer?.company_name
+    ? {
+        value: String(record.customer.id),
+        label: record.customer.company_name,
+      }
+    : null;
+
   return (
     <>
+      <FormField
+        control={form.control}
+        name="customer_id"
+        rules={{
+          required: translate(
+            "crm.contacts.validation.customer",
+            { ns: "starter" },
+            "Pick the company this contact works for"
+          ),
+        }}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              {translate("crm.contacts.fields.customer", { ns: "starter" }, "Customer")}
+            </FormLabel>
+            <FormControl
+              render={
+                <CustomerPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={lockCustomer}
+                  initialOption={customerInitial}
+                />
+              }
+            />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       <FormField
         control={form.control}
         name="name"
@@ -251,7 +293,11 @@ function ContactCreateForm({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <ContactFormFields form={form} translate={translate} />
+          <ContactFormFields
+            form={form}
+            translate={translate}
+            lockCustomer={Boolean(customerId)}
+          />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
           <Button type="button" variant="outline" onClick={() => close()}>
@@ -297,7 +343,7 @@ function ContactEditForm({
 }) {
   const close = useRouteSurfaceClose();
   const {
-    refineCore: { onFinish },
+    refineCore: { onFinish, query },
     ...form
   } = useForm<ContactRecord, HttpError, ContactFormValues>({
     refineCoreProps: {
@@ -305,6 +351,7 @@ function ContactEditForm({
       action: "edit",
       id: recordId,
       redirect: false,
+      meta: { appends: ["customer"] },
       onMutationSuccess: () => {
         close({ skipBeforeClose: true });
       },
@@ -318,7 +365,11 @@ function ContactEditForm({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <ContactFormFields form={form} translate={translate} />
+          <ContactFormFields
+            form={form}
+            translate={translate}
+            record={query?.data?.data}
+          />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
           <Button type="button" variant="outline" onClick={() => close()}>

@@ -204,7 +204,10 @@ function FollowUpList() {
 
   return (
     <ListView resource="crm_follow_ups">
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        onRowClick={(record) => openChild(`show/${record.id}`)}
+      />
     </ListView>
   );
 }

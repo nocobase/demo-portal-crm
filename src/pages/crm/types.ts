@@ -1,6 +1,8 @@
 export type CustomerRecord = {
   id: string | number;
   company_name?: string;
+  ownerId?: string | number | null;
+  owner?: UserRecord | null;
   industry?: string | null;
   status?: string | null;
   website?: string | null;
@@ -17,6 +19,7 @@ export type CustomerFormValues = {
   website: string;
   phone: string;
   notes: string;
+  ownerId: string | number | null;
 };
 
 export type ContactRecord = {
@@ -36,7 +39,7 @@ export type ContactFormValues = {
   job_title: string;
   email: string;
   phone: string;
-  customer_id: string | null;
+  customer_id: string | number | null;
   notes: string;
 };
 
@@ -49,8 +52,10 @@ export type DealRecord = {
   closed_date?: string | null;
   customer_id?: string | number | null;
   contact_id?: string | number | null;
+  ownerId?: string | number | null;
   customer?: CustomerRecord | null;
   contact?: ContactRecord | null;
+  owner?: UserRecord | null;
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -62,8 +67,9 @@ export type DealFormValues = {
   amount: number | null;
   expected_close_date: string | null;
   closed_date: string | null;
-  customer_id: string | null;
-  contact_id: string | null;
+  customer_id: string | number | null;
+  contact_id: string | number | null;
+  ownerId: string | number | null;
   notes: string;
 };
 
@@ -74,8 +80,10 @@ export type ActivityRecord = {
   date?: string | null;
   customer_id?: string | number | null;
   contact_id?: string | number | null;
+  dealId?: string | number | null;
   customer?: CustomerRecord | null;
   contact?: ContactRecord | null;
+  deal?: DealRecord | null;
   notes?: string | null;
   createdAt?: string;
 };
@@ -84,8 +92,8 @@ export type ActivityFormValues = {
   subject: string;
   type: string;
   date: string | null;
-  customer_id: string | null;
-  contact_id: string | null;
+  customer_id: string | number | null;
+  contact_id: string | number | null;
   notes: string;
 };
 
@@ -95,7 +103,11 @@ export type FollowUpRecord = {
   due_date?: string | null;
   status?: string | null;
   customer_id?: string | number | null;
+  ownerId?: string | number | null;
+  dealId?: string | number | null;
   customer?: CustomerRecord | null;
+  owner?: UserRecord | null;
+  deal?: DealRecord | null;
   notes?: string | null;
   createdAt?: string;
 };
@@ -104,7 +116,8 @@ export type FollowUpFormValues = {
   subject: string;
   due_date: string | null;
   status: string;
-  customer_id: string | null;
+  customer_id: string | number | null;
+  ownerId: string | number | null;
   notes: string;
 };
 
@@ -146,6 +159,7 @@ export type QuoteItemRecord = {
   qty?: number | null;
   unit_price?: number | null;
   product?: ProductRecord | null;
+  quote?: QuoteRecord | null;
 };
 
 export type QuoteRecord = {

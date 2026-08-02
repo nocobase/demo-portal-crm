@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { CanAccess } from "@/components/access-control/can-access";
 import { FollowUpCreate, FollowUpEdit } from "./form";
+import { FollowUpShow } from "./show";
 
 export function FollowUpCreateRoute() {
   return (
@@ -16,6 +17,14 @@ export function FollowUpEditRoute() {
   return (
     <CanAccess resource="crm_follow_ups" action="edit" fallback={<AccessDenied />}>
       <FollowUpEdit />
+    </CanAccess>
+  );
+}
+
+export function FollowUpShowRoute() {
+  return (
+    <CanAccess resource="crm_follow_ups" action="show" fallback={<AccessDenied />}>
+      <FollowUpShow />
     </CanAccess>
   );
 }

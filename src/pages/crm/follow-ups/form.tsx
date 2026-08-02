@@ -18,8 +18,12 @@ type FollowUpSurfaceProps = {
 };
 
 const toServerValues = (values: FollowUpFormValues) => {
-  const { customer_id, ...rest } = values;
-  return { ...rest, customer: customer_id } as unknown as FollowUpFormValues;
+  const { customer_id, ownerId, ...rest } = values;
+  return {
+    ...rest,
+    customer: customer_id,
+    owner: ownerId,
+  } as unknown as FollowUpFormValues;
 };
 
 export const FollowUpCreate = ({ presetCustomerId }: FollowUpSurfaceProps) => {
@@ -66,6 +70,7 @@ function FollowUpCreateForm({ presetCustomerId }: FollowUpSurfaceProps) {
       due_date: null,
       status: "pending",
       customer_id: presetCustomerId ? String(presetCustomerId) : null,
+      ownerId: null,
       notes: "",
     },
   });
@@ -137,7 +142,7 @@ function FollowUpEditForm({
       action: "edit",
       id: recordId,
       redirect: false,
-      meta: { appends: ["customer"] },
+      meta: { appends: ["customer", "owner"] },
       onMutationSuccess: () => {
         close({ skipBeforeClose: true });
       },

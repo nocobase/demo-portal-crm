@@ -469,6 +469,15 @@ export const appRoutes = defineAppRoutes([
             ({ ProductEditRoute }) => ({ default: ProductEditRoute })
           ),
       },
+      {
+        name: "crm_products.show",
+        path: "show/:id",
+        resourceAction: "show",
+        lazy: () =>
+          import("@/pages/crm/products/route-components").then(
+            ({ ProductShowRoute }) => ({ default: ProductShowRoute })
+          ),
+      },
     ],
   },
   {
@@ -512,6 +521,15 @@ export const appRoutes = defineAppRoutes([
             ({ ActivityEditRoute }) => ({ default: ActivityEditRoute })
           ),
       },
+      {
+        name: "crm_activities.show",
+        path: "show/:id",
+        resourceAction: "show",
+        lazy: () =>
+          import("@/pages/crm/activities/route-components").then(
+            ({ ActivityShowRoute }) => ({ default: ActivityShowRoute })
+          ),
+      },
     ],
   },
   {
@@ -553,6 +571,15 @@ export const appRoutes = defineAppRoutes([
         lazy: () =>
           import("@/pages/crm/follow-ups/route-components").then(
             ({ FollowUpEditRoute }) => ({ default: FollowUpEditRoute })
+          ),
+      },
+      {
+        name: "crm_follow_ups.show",
+        path: "show/:id",
+        resourceAction: "show",
+        lazy: () =>
+          import("@/pages/crm/follow-ups/route-components").then(
+            ({ FollowUpShowRoute }) => ({ default: FollowUpShowRoute })
           ),
       },
     ],

@@ -171,7 +171,10 @@ function ActivityList() {
 
   return (
     <ListView resource="crm_activities">
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        onRowClick={(record) => openChild(`show/${record.id}`)}
+      />
     </ListView>
   );
 }

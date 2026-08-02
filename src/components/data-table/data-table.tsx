@@ -20,10 +20,25 @@ import { cn } from "@/lib/utils";
 
 type DataTableProps<TData extends BaseRecord> = {
   table: UseTableReturnType<TData, HttpError>;
+  /**
+   * Opens a record surface when the row itself is clicked. Clicks that
+   * originate from an interactive cell (action buttons, links, inputs) are
+   * ignored so row navigation never hijacks an inline action.
+   */
+  onRowClick?: (record: TData) => void;
 };
+
+const isInteractiveTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  Boolean(
+    target.closest(
+      'button, a, input, select, textarea, [role="button"], [role="menuitem"], [role="checkbox"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]'
+    )
+  );
 
 export function DataTable<TData extends BaseRecord>({
   table,
+  onRowClick,
 }: DataTableProps<TData>) {
   const translate = useTranslate();
   const {
@@ -171,6 +186,15 @@ export function DataTable<TData extends BaseRecord>({
                   <TableRow
                     key={row.original?.id ?? row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className={onRowClick ? "cursor-pointer" : undefined}
+                    onClick={
+                      onRowClick
+                        ? (event) => {
+                            if (isInteractiveTarget(event.target)) return;
+                            onRowClick(row.original);
+                          }
+                        : undefined
+                    }
                   >
                     {row.getVisibleCells().map((cell) => {
                       return (

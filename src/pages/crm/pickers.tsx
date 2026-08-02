@@ -13,6 +13,17 @@ import type { ContactRecord, CustomerRecord, DealRecord, ProductRecord, UserReco
 
 export type PickerOption = { value: string; label: string };
 
+/**
+ * Relation ids arrive from NocoBase as numbers (`customer_id: 378464132530176`)
+ * while picker options are built as strings. Every comparison between a form
+ * value and an option value has to go through this so the stored relation is
+ * recognised and rendered instead of falling back to the empty placeholder.
+ */
+export type RelationId = string | number | null | undefined;
+
+export const toPickerValue = (value: RelationId): string | null =>
+  value === null || value === undefined || value === "" ? null : String(value);
+
 export function useCustomerOptions(): {
   options: PickerOption[];
   isLoading: boolean;
@@ -79,7 +90,7 @@ export function useProductOptions(): {
 }
 
 type EntityPickerProps = {
-  value: string | null | undefined;
+  value: RelationId;
   onChange: (value: string | null) => void;
   options: PickerOption[];
   placeholder?: string;
@@ -98,6 +109,7 @@ export function EntityPicker({
   const translate = useTranslate();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
+  const selectedValue = toPickerValue(value);
 
   const withInitial = useMemo(() => {
     if (
@@ -109,7 +121,8 @@ export function EntityPicker({
     return [...options, initialOption];
   }, [options, initialOption]);
 
-  const selected = withInitial.find((option) => option.value === value) ?? null;
+  const selected =
+    withInitial.find((option) => option.value === selectedValue) ?? null;
 
   const visible = useMemo(() => {
     const query = typed.trim().toLowerCase();
@@ -194,7 +207,7 @@ export function EntityPicker({
           </div>
         </PopoverContent>
       </Popover>
-      {!disabled && value ? (
+      {!disabled && selectedValue ? (
         <button
           type="button"
           onClick={() => onChange(null)}
@@ -212,7 +225,7 @@ export function EntityPicker({
   );
 }
 
-export function useDealOptions(customerId: string | null | undefined): {
+export function useDealOptions(customerId: RelationId): {
   options: PickerOption[];
   isLoading: boolean;
 } {
@@ -237,7 +250,7 @@ export function useDealOptions(customerId: string | null | undefined): {
 }
 
 type OwnerPickerProps = {
-  value: string | null | undefined;
+  value: RelationId;
   onChange: (value: string | null) => void;
   disabled?: boolean;
   initialOption?: PickerOption | null;
@@ -259,8 +272,8 @@ export function OwnerPicker({ value, onChange, disabled, initialOption }: OwnerP
 }
 
 type DealPickerProps = {
-  customerId: string | null | undefined;
-  value: string | null | undefined;
+  customerId: RelationId;
+  value: RelationId;
   onChange: (value: string | null) => void;
   disabled?: boolean;
   initialOption?: PickerOption | null;
@@ -286,7 +299,7 @@ export function DealPicker({ customerId, value, onChange, disabled, initialOptio
 }
 
 type CustomerPickerProps = {
-  value: string | null | undefined;
+  value: RelationId;
   onChange: (value: string | null) => void;
   disabled?: boolean;
   placeholder?: string;
@@ -322,8 +335,8 @@ export function CustomerPicker({
 }
 
 type ContactPickerProps = {
-  customerId: string | null | undefined;
-  value: string | null | undefined;
+  customerId: RelationId;
+  value: RelationId;
   onChange: (value: string | null) => void;
   disabled?: boolean;
   initialOption?: PickerOption | null;

@@ -13,6 +13,11 @@ import { useContextualCloseTo } from "../route-surfaces";
 import type { CustomerFormValues, CustomerRecord } from "../types";
 import { CustomerFormFields } from "./fields";
 
+const toServerValues = (values: CustomerFormValues) => {
+  const { ownerId, ...rest } = values;
+  return { ...rest, owner: ownerId } as unknown as CustomerFormValues;
+};
+
 export const CustomerCreate = () => {
   const translate = useTranslate();
   const closeTo = useContextualCloseTo();
@@ -59,13 +64,14 @@ function CustomerCreateForm() {
       website: "",
       phone: "",
       notes: "",
+      ownerId: null,
     },
   });
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((values) => onFinish(values))}
+        onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values)))}
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
@@ -115,7 +121,7 @@ function CustomerEditForm({ id }: { id?: string }) {
   const translate = useTranslate();
   const close = useRouteSurfaceClose();
   const {
-    refineCore: { onFinish },
+    refineCore: { onFinish, query },
     ...form
   } = useForm<CustomerRecord, HttpError, CustomerFormValues>({
     refineCoreProps: {
@@ -123,6 +129,7 @@ function CustomerEditForm({ id }: { id?: string }) {
       action: "edit",
       id,
       redirect: false,
+      meta: { appends: ["owner"] },
       onMutationSuccess: () => {
         close({ skipBeforeClose: true });
       },
@@ -132,11 +139,15 @@ function CustomerEditForm({ id }: { id?: string }) {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((values) => onFinish(values))}
+        onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values)))}
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <CustomerFormFields form={form} translate={translate} />
+          <CustomerFormFields
+            form={form}
+            translate={translate}
+            record={query?.data?.data}
+          />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
           <Button type="button" variant="outline" onClick={() => close()}>

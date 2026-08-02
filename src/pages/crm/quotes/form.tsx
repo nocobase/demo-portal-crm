@@ -43,8 +43,8 @@ type QuoteFormValues = {
   status: string;
   issue_date: string | null;
   valid_until: string | null;
-  customer_id: string | null;
-  deal_id: string | null;
+  customer_id: string | number | null;
+  deal_id: string | number | null;
 };
 
 const toServerValues = (values: QuoteFormValues) => {

@@ -178,7 +178,10 @@ function CustomerList() {
 
   return (
     <ListView resource="crm_customers">
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        onRowClick={(record) => openChild(`show/${record.id}`)}
+      />
     </ListView>
   );
 }

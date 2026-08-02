@@ -21,17 +21,24 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CUSTOMER_STATUSES, INDUSTRIES, labelFor } from "../constants";
-import type { CustomerFormValues } from "../types";
+import { OwnerPicker } from "../pickers";
+import type { CustomerFormValues, CustomerRecord } from "../types";
 
 type Translate = ReturnType<typeof useTranslate>;
 
 export function CustomerFormFields({
   form,
   translate,
+  record,
 }: {
   form: UseFormReturn<CustomerFormValues>;
   translate: Translate;
+  record?: CustomerRecord | null;
 }) {
+  const ownerInitial = record?.owner?.nickname
+    ? { value: String(record.owner.id), label: record.owner.nickname }
+    : null;
+
   return (
     <>
       <FormField
@@ -189,6 +196,28 @@ export function CustomerFormFields({
           )}
         />
       </div>
+
+      <FormField
+        control={form.control}
+        name="ownerId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              {translate("crm.customers.fields.owner", { ns: "starter" }, "Account owner")}
+            </FormLabel>
+            <FormControl
+              render={
+                <OwnerPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  initialOption={ownerInitial}
+                />
+              }
+            />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}

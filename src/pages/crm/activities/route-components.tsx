@@ -5,6 +5,7 @@ import { AccessDenied } from "@/components/access-control/access-denied";
 import { CanAccess } from "@/components/access-control/can-access";
 import type { DealRecord } from "../types";
 import { ActivityCreate, ActivityEdit } from "./form";
+import { ActivityShow } from "./show";
 
 function DealActivityCreate({ dealParam }: { dealParam: "id" | "dealId" }) {
   const params = useParams<Record<string, string>>();
@@ -37,6 +38,14 @@ export function ActivityEditRoute() {
   return (
     <CanAccess resource="crm_activities" action="edit" fallback={<AccessDenied />}>
       <ActivityEdit />
+    </CanAccess>
+  );
+}
+
+export function ActivityShowRoute() {
+  return (
+    <CanAccess resource="crm_activities" action="show" fallback={<AccessDenied />}>
+      <ActivityShow />
     </CanAccess>
   );
 }

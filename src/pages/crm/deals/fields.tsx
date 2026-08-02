@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DEAL_STAGES, labelFor, toDateInputValue } from "../constants";
-import { ContactPicker, CustomerPicker } from "../pickers";
+import { ContactPicker, CustomerPicker, OwnerPicker } from "../pickers";
 import type { DealFormValues, DealRecord } from "../types";
 
 type Translate = ReturnType<typeof useTranslate>;
@@ -53,6 +53,13 @@ export function DealFormFields({
     () =>
       record?.contact?.name
         ? { value: String(record.contact.id), label: record.contact.name }
+        : null,
+    [record]
+  );
+  const ownerInitial = useMemo(
+    () =>
+      record?.owner?.nickname
+        ? { value: String(record.owner.id), label: record.owner.nickname }
         : null,
     [record]
   );
@@ -122,28 +129,52 @@ export function DealFormFields({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="contact_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              {translate("crm.deals.fields.contact", { ns: "starter" }, "Contact")}
-            </FormLabel>
-            <FormControl
-              render={
-                <ContactPicker
-                  customerId={watchedCustomerId}
-                  value={field.value}
-                  onChange={field.onChange}
-                  initialOption={contactInitial}
-                />
-              }
-            />
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid gap-6 sm:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="contact_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {translate("crm.deals.fields.contact", { ns: "starter" }, "Contact")}
+              </FormLabel>
+              <FormControl
+                render={
+                  <ContactPicker
+                    customerId={watchedCustomerId}
+                    value={field.value}
+                    onChange={field.onChange}
+                    initialOption={contactInitial}
+                  />
+                }
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="ownerId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {translate("crm.deals.fields.owner", { ns: "starter" }, "Owner")}
+              </FormLabel>
+              <FormControl
+                render={
+                  <OwnerPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    initialOption={ownerInitial}
+                  />
+                }
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <FormField

@@ -18,8 +18,13 @@ type DealSurfaceProps = {
 };
 
 const toServerValues = (values: DealFormValues) => {
-  const { customer_id, contact_id, ...rest } = values;
-  return { ...rest, customer: customer_id, contact: contact_id } as unknown as DealFormValues;
+  const { customer_id, contact_id, ownerId, ...rest } = values;
+  return {
+    ...rest,
+    customer: customer_id,
+    contact: contact_id,
+    owner: ownerId,
+  } as unknown as DealFormValues;
 };
 
 export const DealCreate = ({ presetCustomerId }: DealSurfaceProps) => {
@@ -69,6 +74,7 @@ function DealCreateForm({ presetCustomerId }: DealSurfaceProps) {
       closed_date: null,
       customer_id: presetCustomerId ? String(presetCustomerId) : null,
       contact_id: null,
+      ownerId: null,
       notes: "",
     },
   });
@@ -148,7 +154,7 @@ function DealEditForm({
       action: "edit",
       id: recordId,
       redirect: false,
-      meta: { appends: ["customer", "contact"] },
+      meta: { appends: ["customer", "contact", "owner"] },
       onMutationSuccess: () => {
         close({ skipBeforeClose: true });
       },
