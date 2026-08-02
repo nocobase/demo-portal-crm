@@ -35,6 +35,45 @@ jobs:
         with:
           version: 10
 
+      - name: Mask deployment values
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${NOCOBASE_USERNAME:?Missing GitHub secret NOCOBASE_USERNAME}"
+          : "${NOCOBASE_PASSWORD:?Missing GitHub secret NOCOBASE_PASSWORD}"
+          : "${NOCOBASE_API_BASE_URL:?Missing GitHub secret NOCOBASE_API_BASE_URL}"
+          : "${NOCOBASE_PORTAL:?Missing GitHub secret NOCOBASE_PORTAL}"
+
+          node <<'NODE'
+          const rawValues = [
+            process.env.NOCOBASE_USERNAME,
+            process.env.NOCOBASE_PASSWORD,
+            process.env.NOCOBASE_API_BASE_URL,
+            process.env.NOCOBASE_PORTAL,
+          ];
+
+          const maskedValues = new Set(rawValues.filter(Boolean));
+
+          try {
+            const apiUrl = new URL(process.env.NOCOBASE_API_BASE_URL);
+            maskedValues.add(apiUrl.origin);
+            maskedValues.add(apiUrl.hostname);
+
+            const portalBasePath = apiUrl.pathname.replace(/\/api\/?$/, "");
+            maskedValues.add(`${apiUrl.origin}${portalBasePath}`);
+
+            const hostPrefix = apiUrl.hostname.split(".")[0];
+            maskedValues.add(hostPrefix);
+          } catch (error) {
+            throw new Error(`Invalid NOCOBASE_API_BASE_URL: ${error.message}`);
+          }
+
+          for (const value of maskedValues) {
+            console.log(`::add-mask::${value}`);
+          }
+          NODE
+
       - name: Install NocoBase CLI
         run: npm install -g @nocobase/cli@alpha
 
