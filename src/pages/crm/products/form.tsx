@@ -65,7 +65,7 @@ function ProductFormFields({
           render={({ field }) => (
             <FormItem>
               <FormLabel>{translate("crm.products.fields.sku", { ns: "starter" }, "SKU")}</FormLabel>
-              <FormControl render={<Input {...field} value={field.value ?? ""} placeholder="e.g. CHR-ERG-01" />} />
+              <FormControl render={<Input {...field} value={field.value ?? ""} placeholder={translate("crm.products.placeholder.sku", { ns: "starter" }, "e.g. CHR-ERG-01")} />} />
               <FormMessage />
             </FormItem>
           )}
