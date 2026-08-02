@@ -2,7 +2,7 @@ import { useTranslate } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Pencil, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
@@ -15,6 +15,15 @@ import { DeleteButton } from "@/components/resources/buttons/delete";
 import { EditButton } from "@/components/resources/buttons/edit";
 import { ListView } from "@/components/resources/views/list-view";
 import { ACTIVITY_TYPES, formatDateTime, labelFor } from "../constants";
+import {
+  DEFAULT_PAGE_SIZE,
+  ListDateRange,
+  ListSearchInput,
+  ListToolbar,
+  dateRangeFilter,
+  searchFilter,
+  useDebouncedValue,
+} from "../list-controls";
 import { useCustomerOptions } from "../pickers";
 import { EnumBadge, useLocale } from "../shared";
 import type { ActivityRecord } from "../types";
@@ -33,6 +42,23 @@ function ActivityList() {
   const openChild = useOpenContextualChild();
   const locale = useLocale();
   const { options: customerOptions } = useCustomerOptions();
+  const [search, setSearch] = useState("");
+  const [loggedFrom, setLoggedFrom] = useState("");
+  const [loggedTo, setLoggedTo] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+
+  // Permanent filters sit alongside the per-column filters the header exposes.
+  const permanentFilters = useMemo(
+    () => [
+      ...searchFilter(["subject", "notes"], debouncedSearch),
+      ...dateRangeFilter(
+        "date",
+        loggedFrom ? `${loggedFrom}T00:00:00.000Z` : "",
+        loggedTo ? `${loggedTo}T23:59:59.999Z` : ""
+      ),
+    ],
+    [debouncedSearch, loggedFrom, loggedTo]
+  );
 
   const typeOptions = useMemo(
     () =>
@@ -165,12 +191,30 @@ function ActivityList() {
       resource: "crm_activities",
       syncWithLocation: false,
       meta: { appends: ["customer", "contact"] },
+      pagination: { currentPage: 1, pageSize: DEFAULT_PAGE_SIZE },
+      filters: { permanent: permanentFilters },
       sorters: { initial: [{ field: "date", order: "desc" }] },
     },
   });
 
   return (
     <ListView resource="crm_activities">
+      <div className="rounded-xl border bg-card shadow-sm">
+        <ListToolbar>
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={translate("crm.activities.search", { ns: "starter" }, "Search subject or notes")}
+          />
+          <ListDateRange
+            from={loggedFrom}
+            to={loggedTo}
+            onFromChange={setLoggedFrom}
+            onToChange={setLoggedTo}
+            label={translate("crm.activities.fields.date", { ns: "starter" }, "Date")}
+          />
+        </ListToolbar>
+      </div>
       <DataTable
         table={table}
         onRowClick={(record) => openChild(`show/${record.id}`)}

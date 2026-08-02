@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
+import { CrmAIContext, CrmAIShortcut, useDealDetailTasks } from "../ai-assistant";
 import {
   ACTIVITY_TYPES,
   DEAL_STAGES,
@@ -48,8 +49,9 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
   const { result: record, query } = useShow<DealRecord>({
     resource: "crm_deals",
     id,
-    meta: { appends: ["customer", "contact"] },
+    meta: { appends: ["customer", "contact", "owner"] },
   });
+  const aiTasks = useDealDetailTasks(translate);
 
   const displayName =
     record?.title ||
@@ -59,6 +61,28 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
   const weighted = Number(record?.amount ?? 0) * probability;
 
   return (
+    <CrmAIContext
+      id="crm-deal-detail"
+      title={translate("crm.ai.context.deal", { ns: "starter" }, "Deal detail")}
+      getContext={() => ({
+        resource: "crm_deals",
+        record: record
+          ? {
+              id: record.id,
+              title: record.title,
+              stage: record.stage,
+              amount: record.amount,
+              weighted_amount: weighted,
+              expected_close_date: record.expected_close_date,
+              closed_date: record.closed_date,
+              customer: record.customer?.company_name ?? null,
+              contact: record.contact?.name ?? null,
+              owner: record.owner?.nickname ?? null,
+              notes: record.notes,
+            }
+          : null,
+      })}
+    >
     <RouteDrawer
       title={
         query.isLoading && !record ? <Skeleton className="h-6 w-40" /> : displayName
@@ -72,17 +96,20 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
       closeTo={closeTo}
       nested={nested}
       actions={
-        record ? (
-          <EditButton
-            resource="crm_deals"
-            recordItemId={record.id}
-            variant="outline"
-            size="icon-sm"
-            onClick={() => openChild("edit")}
-          >
-            <Pencil />
-          </EditButton>
-        ) : null
+        <div className="flex items-center gap-2">
+          <CrmAIShortcut tasks={aiTasks} />
+          {record ? (
+            <EditButton
+              resource="crm_deals"
+              recordItemId={record.id}
+              variant="outline"
+              size="icon-sm"
+              onClick={() => openChild("edit")}
+            >
+              <Pencil />
+            </EditButton>
+          ) : null}
+        </div>
       }
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -175,6 +202,7 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
         )}
       </div>
     </RouteDrawer>
+    </CrmAIContext>
   );
 }
 

@@ -2,7 +2,7 @@ import { useTranslate } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
@@ -16,6 +16,15 @@ import { EditButton } from "@/components/resources/buttons/edit";
 import { ShowButton } from "@/components/resources/buttons/show";
 import { ListView } from "@/components/resources/views/list-view";
 import { CUSTOMER_STATUSES, INDUSTRIES, labelFor } from "../constants";
+import {
+  DEFAULT_PAGE_SIZE,
+  ListFilterSelect,
+  ListSearchInput,
+  ListToolbar,
+  searchFilter,
+  useDebouncedValue,
+} from "../list-controls";
+import { useOwnerOptions } from "../pickers";
 import { EnumBadge } from "../shared";
 import type { CustomerRecord } from "../types";
 import { useOpenContextualChild } from "../route-surfaces";
@@ -31,6 +40,21 @@ export function CustomersLayout() {
 function CustomerList() {
   const translate = useTranslate();
   const openChild = useOpenContextualChild();
+  const { options: ownerOptions } = useOwnerOptions();
+  const [search, setSearch] = useState("");
+  const [owner, setOwner] = useState("all");
+  const debouncedSearch = useDebouncedValue(search);
+
+  // Permanent filters sit alongside the per-column filters the header exposes.
+  const permanentFilters = useMemo(
+    () => [
+      ...searchFilter(["company_name", "phone", "website"], debouncedSearch),
+      ...(owner === "all"
+        ? []
+        : [{ field: "ownerId", operator: "eq" as const, value: owner }]),
+    ],
+    [debouncedSearch, owner]
+  );
 
   const industryOptions = useMemo(
     () =>
@@ -127,6 +151,12 @@ function CustomerList() {
         enableSorting: false,
         cell: ({ getValue }) => getValue() || "—",
       }),
+      columnHelper.accessor((record) => record.owner?.nickname, {
+        id: "ownerName",
+        header: translate("crm.customers.fields.owner", { ns: "starter" }, "Account owner"),
+        enableSorting: false,
+        cell: ({ getValue }) => getValue() || "—",
+      }),
       columnHelper.display({
         id: "actions",
         header: translate("crm.common.actions", { ns: "starter" }, "Actions"),
@@ -172,12 +202,30 @@ function CustomerList() {
     refineCoreProps: {
       resource: "crm_customers",
       syncWithLocation: false,
+      meta: { appends: ["owner"] },
+      pagination: { currentPage: 1, pageSize: DEFAULT_PAGE_SIZE },
+      filters: { permanent: permanentFilters },
       sorters: { initial: [{ field: "company_name", order: "asc" }] },
     },
   });
 
   return (
     <ListView resource="crm_customers">
+      <div className="rounded-xl border bg-card shadow-sm">
+        <ListToolbar>
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={translate("crm.customers.search", { ns: "starter" }, "Search company, phone or website")}
+          />
+          <ListFilterSelect
+            value={owner}
+            onChange={setOwner}
+            options={ownerOptions}
+            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+          />
+        </ListToolbar>
+      </div>
       <DataTable
         table={table}
         onRowClick={(record) => openChild(`show/${record.id}`)}

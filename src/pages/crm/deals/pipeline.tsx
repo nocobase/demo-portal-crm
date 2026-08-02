@@ -5,7 +5,18 @@ import { LoadingState } from "@/components/app-shell/loading-state";
 import { ListView } from "@/components/resources/views/list-view";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { CrmAIContext, CrmAIShortcut, usePipelineTasks } from "../ai-assistant";
 import { DEAL_STAGES, formatCurrency, formatDate, labelFor } from "../constants";
+import {
+  ListDateRange,
+  ListFilterSelect,
+  ListSearchInput,
+  ListToolbar,
+  dateRangeFilter,
+  searchFilter,
+  useDebouncedValue,
+} from "../list-controls";
+import { useCustomerOptions, useOwnerOptions } from "../pickers";
 import { useOpenContextualChild } from "../route-surfaces";
 import { useLocale } from "../shared";
 import type { DealRecord } from "../types";
@@ -18,11 +29,36 @@ export function PipelinePage() {
   const openChild = useOpenContextualChild();
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const { mutate: updateDeal } = useUpdate<DealRecord>();
+  const { options: ownerOptions } = useOwnerOptions();
+  const { options: customerOptions } = useCustomerOptions();
+  const [search, setSearch] = useState("");
+  const [owner, setOwner] = useState("all");
+  const [customer, setCustomer] = useState("all");
+  const [closeFrom, setCloseFrom] = useState("");
+  const [closeTo, setCloseTo] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+
+  const filters = useMemo(
+    () => [
+      ...searchFilter(["title", "notes"], debouncedSearch),
+      ...(owner === "all"
+        ? []
+        : [{ field: "ownerId", operator: "eq" as const, value: owner }]),
+      ...(customer === "all"
+        ? []
+        : [{ field: "customer_id", operator: "eq" as const, value: customer }]),
+      ...dateRangeFilter("expected_close_date", closeFrom, closeTo),
+    ],
+    [closeFrom, closeTo, customer, debouncedSearch, owner]
+  );
 
   const { result, query } = useList<DealRecord>({
     resource: "crm_deals",
+    filters,
+    // The board renders every stage at once, so it keeps a large page rather
+    // than paginating; the filters above are what keep the result set small.
     pagination: { mode: "server", currentPage: 1, pageSize: 300 },
-    meta: { appends: ["customer"] },
+    meta: { appends: ["customer", "owner"] },
     errorNotification: false,
     queryOptions: { retry: false },
   });
@@ -59,8 +95,69 @@ export function PipelinePage() {
     });
   };
 
+  const aiTasks = usePipelineTasks(translate);
+
   return (
+    <CrmAIContext
+      id="crm-pipeline-board"
+      title={translate("crm.ai.context.pipeline", { ns: "starter" }, "Deal pipeline")}
+      kind="record-list"
+      getContext={() => ({
+        resource: "crm_deals",
+        filters: { search, owner, customer, closeFrom, closeTo },
+        stages: DEAL_STAGES.map((stage) => ({
+          stage: stage.value,
+          count: (grouped[stage.value] ?? []).length,
+          value: (grouped[stage.value] ?? []).reduce(
+            (sum, deal) => sum + Number(deal.amount ?? 0),
+            0
+          ),
+          deals: (grouped[stage.value] ?? []).map((deal) => ({
+            id: deal.id,
+            title: deal.title,
+            amount: deal.amount,
+            expected_close_date: deal.expected_close_date,
+            customer: deal.customer?.company_name ?? null,
+            owner: deal.owner?.nickname ?? null,
+          })),
+        })),
+      })}
+    >
     <ListView resource="crm_deals">
+      <div className="rounded-xl border bg-card shadow-sm">
+        <ListToolbar>
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={translate("crm.pipeline.search", { ns: "starter" }, "Search deal title or notes")}
+          />
+          <ListFilterSelect
+            value={owner}
+            onChange={setOwner}
+            options={ownerOptions}
+            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+          />
+          <ListFilterSelect
+            value={customer}
+            onChange={setCustomer}
+            options={customerOptions}
+            allLabel={translate("crm.common.allCustomers", { ns: "starter" }, "All customers")}
+          />
+          <ListDateRange
+            from={closeFrom}
+            to={closeTo}
+            onFromChange={setCloseFrom}
+            onToChange={setCloseTo}
+            label={translate("crm.deals.fields.expectedClose", { ns: "starter" }, "Expected close")}
+          />
+          <div className="lg:ml-auto">
+            <CrmAIShortcut
+              tasks={aiTasks}
+              label={translate("crm.ai.askAssistant", { ns: "starter" }, "Ask the CRM assistant")}
+            />
+          </div>
+        </ListToolbar>
+      </div>
       {query.isLoading ? (
         <LoadingState className="min-h-64" />
       ) : query.isError ? (
@@ -141,6 +238,7 @@ export function PipelinePage() {
         </div>
       )}
     </ListView>
+    </CrmAIContext>
   );
 }
 
@@ -180,6 +278,7 @@ function PipelineCard({
       <span className="text-xs text-muted-foreground">
         {deal.customer?.company_name ||
           translate("crm.pipeline.noCustomer", { ns: "starter" }, "No customer")}
+        {deal.owner?.nickname ? ` · ${deal.owner.nickname}` : ""}
       </span>
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold tabular-nums">

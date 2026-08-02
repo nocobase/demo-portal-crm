@@ -16,15 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -35,8 +27,25 @@ import {
 } from "@/components/ui/table";
 import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
 import { nocobaseClient } from "@nocobase/portal-sdk/client";
+import {
+  CrmAIContext,
+  CrmAIShortcut,
+  useLeadDetailTasks,
+  useLeadListTasks,
+} from "../ai-assistant";
 import { LEAD_SOURCES, LEAD_STATUSES, formatDate, labelFor } from "../constants";
+import {
+  ListFilterSelect,
+  ListPagination,
+  ListSearchInput,
+  ListToolbar,
+  searchFilter,
+  useDebouncedValue,
+  useListPagination,
+  useResetPageOnFilterChange,
+} from "../list-controls";
 import { MetricCard } from "../overview-cards";
+import { useOwnerOptions } from "../pickers";
 import { useContextualCloseTo, useOpenContextualChild } from "../route-surfaces";
 import { DetailItems, EnumBadge, useLocale } from "../shared";
 import type { CustomerRecord, DealRecord, LeadRecord } from "../types";
@@ -46,116 +55,208 @@ export function LeadsPage() {
   const openChild = useOpenContextualChild();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [source, setSource] = useState("all");
+  const [owner, setOwner] = useState("all");
+  const debouncedSearch = useDebouncedValue(search);
+  const { currentPage, pageSize, setCurrentPage, setPageSize } =
+    useListPagination();
+  const { options: ownerOptions } = useOwnerOptions();
+
+  const filters = useMemo(
+    () => [
+      ...searchFilter(["name", "company", "email"], debouncedSearch),
+      ...(status === "all"
+        ? []
+        : [{ field: "status", operator: "eq" as const, value: status }]),
+      ...(source === "all"
+        ? []
+        : [{ field: "source", operator: "eq" as const, value: source }]),
+      ...(owner === "all"
+        ? []
+        : [{ field: "owner_id", operator: "eq" as const, value: owner }]),
+    ],
+    [debouncedSearch, owner, source, status]
+  );
+  useResetPageOnFilterChange(
+    `${debouncedSearch}|${status}|${source}|${owner}`,
+    setCurrentPage
+  );
+
   const { result, query } = useList<LeadRecord>({
     resource: "crm_leads",
-    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    filters,
+    pagination: { mode: "server", currentPage, pageSize },
     sorters: [{ field: "score", order: "desc" }],
     meta: { appends: ["owner"] },
     errorNotification: false,
     queryOptions: { retry: false },
   });
 
-  const leads = result.data;
-  const visible = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return leads.filter((lead) => {
-      const matchesStatus = status === "all" || lead.status === status;
-      const matchesSearch = !needle || [lead.name, lead.company, lead.email]
-        .some((value) => value?.toLowerCase().includes(needle));
-      return matchesStatus && matchesSearch;
-    });
-  }, [leads, search, status]);
-  const averageScore = leads.length
-    ? Math.round(leads.reduce((sum, lead) => sum + Number(lead.score ?? 0), 0) / leads.length)
+  // Metrics describe the whole funnel, so they stay independent of the
+  // table's page and filter state.
+  const summary = useList<LeadRecord>({
+    resource: "crm_leads",
+    pagination: { mode: "server", currentPage: 1, pageSize: 500 },
+    meta: { fields: ["id", "status", "score"] },
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+
+  const visible = result.data;
+  const allLeads = summary.result.data;
+  const averageScore = allLeads.length
+    ? Math.round(allLeads.reduce((sum, lead) => sum + Number(lead.score ?? 0), 0) / allLeads.length)
     : 0;
-  const qualified = leads.filter((lead) => ["qualified", "converted"].includes(lead.status ?? "")).length;
-  const conversionRate = leads.length ? Math.round((leads.filter((lead) => lead.status === "converted").length / leads.length) * 100) : 0;
+  const qualified = allLeads.filter((lead) => ["qualified", "converted"].includes(lead.status ?? "")).length;
+  const conversionRate = allLeads.length ? Math.round((allLeads.filter((lead) => lead.status === "converted").length / allLeads.length) * 100) : 0;
+
+  const statusOptions = useMemo(
+    () =>
+      LEAD_STATUSES.map((option) => ({
+        value: option.value,
+        label: labelFor(LEAD_STATUSES, option.value, translate),
+      })),
+    [translate]
+  );
+  const sourceOptions = useMemo(
+    () =>
+      LEAD_SOURCES.map((option) => ({
+        value: option.value,
+        label: labelFor(LEAD_SOURCES, option.value, translate),
+      })),
+    [translate]
+  );
+
+  const aiTasks = useLeadListTasks(translate);
 
   return (
+    <CrmAIContext
+      id="crm-leads-list"
+      title={translate("crm.ai.context.leads", { ns: "starter" }, "Lead list")}
+      kind="record-list"
+      getContext={() => ({
+        resource: "crm_leads",
+        filters: { search, status, source, owner },
+        total: result.total,
+        rows: visible.map((lead) => ({
+          id: lead.id,
+          name: lead.name,
+          company: lead.company,
+          email: lead.email,
+          phone: lead.phone,
+          source: lead.source,
+          status: lead.status,
+          score: lead.score,
+          owner: lead.owner?.nickname ?? null,
+        })),
+      })}
+    >
     <ListView resource="crm_leads">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label={translate("crm.leads.metrics.total", { ns: "starter" }, "Total leads")} value={leads.length} icon={<Users className="size-5" />} loading={query.isLoading} />
-        <MetricCard label={translate("crm.leads.metrics.qualified", { ns: "starter" }, "Qualified pipeline")} value={qualified} icon={<Target className="size-5" />} loading={query.isLoading} />
-        <MetricCard label={translate("crm.leads.metrics.averageScore", { ns: "starter" }, "Average score")} value={`${averageScore}/100`} icon={<Gauge className="size-5" />} loading={query.isLoading} />
-        <MetricCard label={translate("crm.leads.metrics.conversion", { ns: "starter" }, "Conversion rate")} value={`${conversionRate}%`} icon={<Sparkles className="size-5" />} loading={query.isLoading} />
+        <MetricCard label={translate("crm.leads.metrics.total", { ns: "starter" }, "Total leads")} value={summary.result.total ?? allLeads.length} icon={<Users className="size-5" />} loading={summary.query.isLoading} />
+        <MetricCard label={translate("crm.leads.metrics.qualified", { ns: "starter" }, "Qualified pipeline")} value={qualified} icon={<Target className="size-5" />} loading={summary.query.isLoading} />
+        <MetricCard label={translate("crm.leads.metrics.averageScore", { ns: "starter" }, "Average score")} value={`${averageScore}/100`} icon={<Gauge className="size-5" />} loading={summary.query.isLoading} />
+        <MetricCard label={translate("crm.leads.metrics.conversion", { ns: "starter" }, "Conversion rate")} value={`${conversionRate}%`} icon={<Sparkles className="size-5" />} loading={summary.query.isLoading} />
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm">
-        <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-          <Input
+        <ListToolbar>
+          <ListSearchInput
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={setSearch}
             placeholder={translate("crm.leads.search", { ns: "starter" }, "Search name, company or email")}
-            className="sm:max-w-sm"
           />
-          <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-            <SelectTrigger className="w-full sm:w-52">
-              <SelectValue>
-                {status === "all"
-                  ? translate("crm.leads.allStatuses", { ns: "starter" }, "All statuses")
-                  : labelFor(LEAD_STATUSES, status, translate)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{translate("crm.leads.allStatuses", { ns: "starter" }, "All statuses")}</SelectItem>
-              {LEAD_STATUSES.map((option) => (
-                <SelectItem key={option.value} value={option.value}>{labelFor(LEAD_STATUSES, option.value, translate)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <ListFilterSelect
+            value={status}
+            onChange={setStatus}
+            options={statusOptions}
+            allLabel={translate("crm.leads.allStatuses", { ns: "starter" }, "All statuses")}
+          />
+          <ListFilterSelect
+            value={source}
+            onChange={setSource}
+            options={sourceOptions}
+            allLabel={translate("crm.leads.allSources", { ns: "starter" }, "All sources")}
+          />
+          <ListFilterSelect
+            value={owner}
+            onChange={setOwner}
+            options={ownerOptions}
+            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+          />
+          <div className="lg:ml-auto">
+            <CrmAIShortcut
+              tasks={aiTasks}
+              label={translate("crm.ai.askAssistant", { ns: "starter" }, "Ask the CRM assistant")}
+            />
+          </div>
+        </ListToolbar>
         {query.isLoading ? (
           <LoadingState className="min-h-96" />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{translate("crm.leads.fields.lead", { ns: "starter" }, "Lead")}</TableHead>
-                  <TableHead>{translate("crm.leads.fields.source", { ns: "starter" }, "Source")}</TableHead>
-                  <TableHead>{translate("crm.leads.fields.status", { ns: "starter" }, "Status")}</TableHead>
-                  <TableHead>{translate("crm.leads.fields.score", { ns: "starter" }, "Score")}</TableHead>
-                  <TableHead>{translate("crm.leads.fields.owner", { ns: "starter" }, "Owner")}</TableHead>
-                  <TableHead className="w-16"><span className="sr-only">{translate("crm.common.actions", { ns: "starter" }, "Actions")}</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((lead) => (
-                  <TableRow key={String(lead.id)}>
-                    <TableCell>
-                      <div className="font-medium">{lead.name}</div>
-                      <div className="text-xs text-muted-foreground">{lead.company}</div>
-                    </TableCell>
-                    <TableCell>{labelFor(LEAD_SOURCES, lead.source, translate)}</TableCell>
-                    <TableCell><EnumBadge value={lead.status} label={labelFor(LEAD_STATUSES, lead.status, translate)} /></TableCell>
-                    <TableCell>
-                      <div className="flex min-w-28 items-center gap-2">
-                        <Progress value={Number(lead.score ?? 0)} className="w-20" />
-                        <span className="text-xs font-semibold tabular-nums">{lead.score ?? 0}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{lead.owner?.nickname ?? "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openChild(`show/${lead.id}`)}>
-                          <Eye /><span className="sr-only">{translate("crm.leads.actions.view", { ns: "starter" }, "View lead")}</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openChild(`edit/${lead.id}`)}>
-                          <Pencil /><span className="sr-only">{translate("crm.leads.actions.edit", { ns: "starter" }, "Edit lead")}</span>
-                        </Button>
-                      </div>
-                    </TableCell>
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{translate("crm.leads.fields.lead", { ns: "starter" }, "Lead")}</TableHead>
+                    <TableHead>{translate("crm.leads.fields.source", { ns: "starter" }, "Source")}</TableHead>
+                    <TableHead>{translate("crm.leads.fields.status", { ns: "starter" }, "Status")}</TableHead>
+                    <TableHead>{translate("crm.leads.fields.score", { ns: "starter" }, "Score")}</TableHead>
+                    <TableHead>{translate("crm.leads.fields.owner", { ns: "starter" }, "Owner")}</TableHead>
+                    <TableHead className="w-16"><span className="sr-only">{translate("crm.common.actions", { ns: "starter" }, "Actions")}</span></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {visible.length === 0 ? (
-              <p className="px-4 py-14 text-center text-sm text-muted-foreground">{translate("crm.leads.empty", { ns: "starter" }, "No leads match the current filters.")}</p>
-            ) : null}
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {visible.map((lead) => (
+                    <TableRow
+                      key={String(lead.id)}
+                      className="cursor-pointer"
+                      onClick={() => openChild(`show/${lead.id}`)}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{lead.name}</div>
+                        <div className="text-xs text-muted-foreground">{lead.company}</div>
+                      </TableCell>
+                      <TableCell>{labelFor(LEAD_SOURCES, lead.source, translate)}</TableCell>
+                      <TableCell><EnumBadge value={lead.status} label={labelFor(LEAD_STATUSES, lead.status, translate)} /></TableCell>
+                      <TableCell>
+                        <div className="flex min-w-28 items-center gap-2">
+                          <Progress value={Number(lead.score ?? 0)} className="w-20" />
+                          <span className="text-xs font-semibold tabular-nums">{lead.score ?? 0}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{lead.owner?.nickname ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); openChild(`show/${lead.id}`); }}>
+                            <Eye /><span className="sr-only">{translate("crm.leads.actions.view", { ns: "starter" }, "View lead")}</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); openChild(`edit/${lead.id}`); }}>
+                            <Pencil /><span className="sr-only">{translate("crm.leads.actions.edit", { ns: "starter" }, "Edit lead")}</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {visible.length === 0 ? (
+                <p className="px-4 py-14 text-center text-sm text-muted-foreground">{translate("crm.leads.empty", { ns: "starter" }, "No leads match the current filters.")}</p>
+              ) : null}
+            </div>
+            <ListPagination
+              currentPage={currentPage}
+              pageSize={pageSize}
+              total={result.total ?? visible.length}
+              setCurrentPage={setCurrentPage}
+              setPageSize={setPageSize}
+            />
+          </>
         )}
       </div>
     </ListView>
+    </CrmAIContext>
   );
 }
 
@@ -168,6 +269,7 @@ export function LeadShow() {
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [converting, setConverting] = useState(false);
+  const aiTasks = useLeadDetailTasks(translate);
   const { result: lead, query } = useOne<LeadRecord>({
     resource: "crm_leads",
     id,
@@ -223,15 +325,40 @@ export function LeadShow() {
   };
 
   return (
-    <>
+    <CrmAIContext
+      id="crm-lead-detail"
+      title={translate("crm.ai.context.lead", { ns: "starter" }, "Lead detail")}
+      getContext={() => ({
+        resource: "crm_leads",
+        record: lead
+          ? {
+              id: lead.id,
+              name: lead.name,
+              company: lead.company,
+              email: lead.email,
+              phone: lead.phone,
+              source: lead.source,
+              status: lead.status,
+              score: lead.score,
+              owner: lead.owner?.nickname ?? null,
+              createdAt: lead.createdAt,
+            }
+          : null,
+      })}
+    >
       <RouteDrawer
         title={lead?.name ?? translate("crm.leads.detail.title", { ns: "starter" }, "Lead details")}
         description={translate("crm.leads.detail.description", { ns: "starter" }, "Qualification signals, contact details and conversion readiness.")}
         closeLabel={translate("crm.common.close", { ns: "starter" }, "Close")}
         closeTo={closeTo}
-        actions={lead && lead.status !== "converted" && lead.status !== "unqualified" ? (
-          <Button onClick={() => setConfirmOpen(true)}><Sparkles />{translate("crm.leads.actions.convert", { ns: "starter" }, "Convert")}</Button>
-        ) : null}
+        actions={
+          <div className="flex items-center gap-2">
+            <CrmAIShortcut tasks={aiTasks} />
+            {lead && lead.status !== "converted" && lead.status !== "unqualified" ? (
+              <Button onClick={() => setConfirmOpen(true)}><Sparkles />{translate("crm.leads.actions.convert", { ns: "starter" }, "Convert")}</Button>
+            ) : null}
+          </div>
+        }
       >
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {query.isLoading ? <LoadingState className="min-h-64" /> : lead ? (
@@ -276,6 +403,6 @@ export function LeadShow() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </CrmAIContext>
   );
 }

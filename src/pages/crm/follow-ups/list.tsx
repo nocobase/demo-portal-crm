@@ -2,7 +2,7 @@ import { useTranslate, useUpdate } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
@@ -16,7 +16,17 @@ import { EditButton } from "@/components/resources/buttons/edit";
 import { ListView } from "@/components/resources/views/list-view";
 import { Button } from "@/components/ui/button";
 import { FOLLOW_UP_STATUSES, formatDate, labelFor } from "../constants";
-import { useCustomerOptions } from "../pickers";
+import {
+  DEFAULT_PAGE_SIZE,
+  ListDateRange,
+  ListFilterSelect,
+  ListSearchInput,
+  ListToolbar,
+  dateRangeFilter,
+  searchFilter,
+  useDebouncedValue,
+} from "../list-controls";
+import { useCustomerOptions, useOwnerOptions } from "../pickers";
 import { EnumBadge, useLocale } from "../shared";
 import type { FollowUpRecord } from "../types";
 import { useOpenContextualChild } from "../route-surfaces";
@@ -36,7 +46,25 @@ function FollowUpList() {
   const openChild = useOpenContextualChild();
   const locale = useLocale();
   const { options: customerOptions } = useCustomerOptions();
+  const { options: ownerOptions } = useOwnerOptions();
   const { mutate: updateFollowUp } = useUpdate<FollowUpRecord>();
+  const [search, setSearch] = useState("");
+  const [owner, setOwner] = useState("all");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+
+  // Permanent filters sit alongside the per-column filters the header exposes.
+  const permanentFilters = useMemo(
+    () => [
+      ...searchFilter(["subject", "notes"], debouncedSearch),
+      ...(owner === "all"
+        ? []
+        : [{ field: "ownerId", operator: "eq" as const, value: owner }]),
+      ...dateRangeFilter("due_date", dueFrom, dueTo),
+    ],
+    [debouncedSearch, dueFrom, dueTo, owner]
+  );
 
   const statusOptions = useMemo(
     () =>
@@ -197,13 +225,37 @@ function FollowUpList() {
     refineCoreProps: {
       resource: "crm_follow_ups",
       syncWithLocation: false,
-      meta: { appends: ["customer"] },
+      meta: { appends: ["customer", "owner"] },
+      pagination: { currentPage: 1, pageSize: DEFAULT_PAGE_SIZE },
+      filters: { permanent: permanentFilters },
       sorters: { initial: [{ field: "due_date", order: "asc" }] },
     },
   });
 
   return (
     <ListView resource="crm_follow_ups">
+      <div className="rounded-xl border bg-card shadow-sm">
+        <ListToolbar>
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={translate("crm.followUps.search", { ns: "starter" }, "Search subject or notes")}
+          />
+          <ListFilterSelect
+            value={owner}
+            onChange={setOwner}
+            options={ownerOptions}
+            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+          />
+          <ListDateRange
+            from={dueFrom}
+            to={dueTo}
+            onFromChange={setDueFrom}
+            onToChange={setDueTo}
+            label={translate("crm.followUps.fields.dueDate", { ns: "starter" }, "Due")}
+          />
+        </ListToolbar>
+      </div>
       <DataTable
         table={table}
         onRowClick={(record) => openChild(`show/${record.id}`)}

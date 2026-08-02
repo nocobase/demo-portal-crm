@@ -12,6 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
 import {
+  CrmAIContext,
+  CrmAIShortcut,
+  useCustomerDetailTasks,
+} from "../ai-assistant";
+import {
   ACTIVITY_TYPES,
   DEAL_STAGES,
   FOLLOW_UP_STATUSES,
@@ -47,13 +52,34 @@ export function CustomerShow() {
   const { result: record, query } = useShow<CustomerRecord>({
     resource: "crm_customers",
     id,
+    meta: { appends: ["owner"] },
   });
+  const aiTasks = useCustomerDetailTasks(translate);
 
   const displayName =
     record?.company_name ||
     translate("crm.customers.detail.unnamed", { ns: "starter" }, "Unnamed customer");
 
   return (
+    <CrmAIContext
+      id="crm-customer-detail"
+      title={translate("crm.ai.context.customer", { ns: "starter" }, "Account detail")}
+      getContext={() => ({
+        resource: "crm_customers",
+        record: record
+          ? {
+              id: record.id,
+              company_name: record.company_name,
+              industry: record.industry,
+              status: record.status,
+              website: record.website,
+              phone: record.phone,
+              owner: record.owner?.nickname ?? null,
+              notes: record.notes,
+            }
+          : null,
+      })}
+    >
     <RouteDrawer
       title={
         query.isLoading && !record ? (
@@ -71,17 +97,20 @@ export function CustomerShow() {
       closeTo={closeTo}
       nested={nested}
       actions={
-        record ? (
-          <EditButton
-            resource="crm_customers"
-            recordItemId={record.id}
-            variant="outline"
-            size="icon-sm"
-            onClick={() => openChild("edit")}
-          >
-            <Pencil />
-          </EditButton>
-        ) : null
+        <div className="flex items-center gap-2">
+          <CrmAIShortcut tasks={aiTasks} />
+          {record ? (
+            <EditButton
+              resource="crm_customers"
+              recordItemId={record.id}
+              variant="outline"
+              size="icon-sm"
+              onClick={() => openChild("edit")}
+            >
+              <Pencil />
+            </EditButton>
+          ) : null}
+        </div>
       }
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -159,6 +188,7 @@ export function CustomerShow() {
         )}
       </div>
     </RouteDrawer>
+    </CrmAIContext>
   );
 }
 
