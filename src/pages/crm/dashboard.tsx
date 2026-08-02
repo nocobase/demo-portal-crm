@@ -5,6 +5,10 @@ import ReactECharts from "echarts-for-react";
 import { Outlet } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import {
+  BuildStoryBanner,
+  type BuildStory,
+} from "@/components/build-story/build-story-banner";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -31,6 +35,20 @@ import { EnumBadge, useLocale } from "./shared";
 import type { CustomerRecord, DealRecord, FollowUpRecord } from "./types";
 
 type AggregateRow = Record<string, string | number | null>;
+
+// How this portal was built — effective (active) time, derived from the build's
+// git commit bursts. Shown in the pinned banner on the dashboard.
+const BUILD_STORY: BuildStory = {
+  models: ["GPT-5.6 sol", "Opus 4.8"],
+  moduleCount: 5,
+  moduleLabelKey: "buildStory.modules",
+  tracks: [
+    { labelKey: "buildStory.phase.scaffold", models: ["GPT-5.6 sol"], start: 0, minutes: 20 },
+    { labelKey: "buildStory.phase.style", models: ["Opus 4.8"], start: 20, minutes: 15 },
+    { labelKey: "buildStory.phase.enrich", models: ["Opus 4.8"], start: 35, minutes: 15 },
+    { labelKey: "buildStory.phase.finalize", models: ["Opus 4.8"], start: 50, minutes: 10 },
+  ],
+};
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -267,6 +285,8 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BuildStoryBanner story={BUILD_STORY} />
+
       <div>
         <h2 className="text-3xl font-semibold tracking-[-0.035em]">
           {translate("crm.dashboard.title", { ns: "starter" }, "Dashboard")}
