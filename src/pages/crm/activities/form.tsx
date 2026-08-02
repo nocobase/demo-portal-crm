@@ -15,18 +15,20 @@ import { ActivityFormFields } from "./fields";
 
 type ActivitySurfaceProps = {
   presetCustomerId?: string;
+  presetDealId?: string;
 };
 
-const toServerValues = (values: ActivityFormValues) => {
+const toServerValues = (values: ActivityFormValues, presetDealId?: string) => {
   const { customer_id, contact_id, ...rest } = values;
   return {
     ...rest,
     customer: customer_id,
     contact: contact_id,
+    ...(presetDealId ? { deal: presetDealId } : {}),
   } as unknown as ActivityFormValues;
 };
 
-export const ActivityCreate = ({ presetCustomerId }: ActivitySurfaceProps) => {
+export const ActivityCreate = ({ presetCustomerId, presetDealId }: ActivitySurfaceProps) => {
   const translate = useTranslate();
   const closeTo = useContextualCloseTo();
   const { beforeClose, confirmation } = useRefineUnsavedChangesGuard();
@@ -43,14 +45,14 @@ export const ActivityCreate = ({ presetCustomerId }: ActivitySurfaceProps) => {
         closeLabel={translate("crm.common.close", { ns: "starter" }, "Close")}
         beforeClose={beforeClose}
       >
-        <ActivityCreateForm presetCustomerId={presetCustomerId} />
+        <ActivityCreateForm presetCustomerId={presetCustomerId} presetDealId={presetDealId} />
       </RouteDrawer>
       {confirmation}
     </>
   );
 };
 
-function ActivityCreateForm({ presetCustomerId }: ActivitySurfaceProps) {
+function ActivityCreateForm({ presetCustomerId, presetDealId }: ActivitySurfaceProps) {
   const translate = useTranslate();
   const close = useRouteSurfaceClose();
   const now = new Date();
@@ -80,7 +82,7 @@ function ActivityCreateForm({ presetCustomerId }: ActivitySurfaceProps) {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values)))}
+        onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values, presetDealId)))}
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">

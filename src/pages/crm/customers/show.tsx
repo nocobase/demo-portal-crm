@@ -1,5 +1,5 @@
 import { useList, useShow, useTranslate, useUpdate } from "@refinedev/core";
-import { CalendarClock, CheckCircle2, Circle, FileText, HandCoins, HeartPulse, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, CheckCircle2, Circle, Eye, FileText, HandCoins, HeartPulse, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { useOutlet, useParams } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
@@ -282,6 +282,17 @@ function RowEditLink({ to }: { to: string }) {
   );
 }
 
+function RowViewLink({ to, label }: { to: string; label: string }) {
+  const openChild = useOpenContextualChild();
+
+  return (
+    <Button variant="ghost" size="icon" onClick={() => openChild(to)}>
+      <Eye />
+      <span className="sr-only">{label}</span>
+    </Button>
+  );
+}
+
 function SimpleTable({
   headers,
   children,
@@ -444,6 +455,10 @@ function DealsSection({
               </td>
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1">
+                  <RowViewLink
+                    to={`deals/show/${encodeURIComponent(String(deal.id))}`}
+                    label={translate("crm.deals.actions.view", { ns: "starter" }, "View deal")}
+                  />
                   <RowEditLink
                     to={`deals/edit/${encodeURIComponent(String(deal.id))}`}
                   />

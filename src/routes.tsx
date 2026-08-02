@@ -10,6 +10,7 @@ import {
   UserPlus,
   Workflow,
 } from "lucide-react";
+import { useOne } from "@refinedev/core";
 import { useParams } from "react-router";
 
 import {
@@ -29,15 +30,20 @@ import { CustomersLayout } from "@/pages/crm/customers/list";
 import { CustomerShow } from "@/pages/crm/customers/show";
 import { DashboardPage } from "@/pages/crm/dashboard";
 import { DealCreate, DealEdit } from "@/pages/crm/deals/form";
+import { DealShow } from "@/pages/crm/deals/show";
 import { PipelinePage } from "@/pages/crm/deals/pipeline";
 import { FollowUpCreate, FollowUpEdit } from "@/pages/crm/follow-ups/form";
 import { FollowUpsLayout } from "@/pages/crm/follow-ups/list";
+import { LeadCreate, LeadEdit } from "@/pages/crm/leads/form";
 import { LeadShow, LeadsPage } from "@/pages/crm/leads/list";
+import { ProductCreate, ProductEdit } from "@/pages/crm/products/form";
 import { ProductsPage } from "@/pages/crm/products/list";
+import { QuoteCreate, QuoteEdit } from "@/pages/crm/quotes/form";
 import { QuoteShow, QuotesPage } from "@/pages/crm/quotes/list";
 import { ReportsPage } from "@/pages/crm/reports/page";
 import { crmRoutes } from "@/pages/crm/routes";
 import { TargetsPage } from "@/pages/crm/targets/page";
+import type { DealRecord } from "@/pages/crm/types";
 
 export const registryRoutesEnabled = false;
 
@@ -71,7 +77,87 @@ function CustomerNestedFollowUpEdit() {
   return <FollowUpEdit presetCustomerId={id} idParam="followUpId" />;
 }
 
+function DealNestedActivityCreate({ dealParam }: { dealParam: string }) {
+  const params = useParams<Record<string, string>>();
+  const dealId = params[dealParam];
+  const { result: deal, query } = useOne<DealRecord>({
+    resource: "crm_deals",
+    id: dealId,
+    queryOptions: { enabled: Boolean(dealId), retry: false },
+  });
+  if (query.isLoading) return null;
+  const customerId = deal?.customer_id != null ? String(deal.customer_id) : undefined;
+  return <ActivityCreate presetCustomerId={customerId} presetDealId={dealId} />;
+}
+
+function DealNestedQuoteCreate({ dealParam }: { dealParam: string }) {
+  const params = useParams<Record<string, string>>();
+  const dealId = params[dealParam];
+  const { result: deal, query } = useOne<DealRecord>({
+    resource: "crm_deals",
+    id: dealId,
+    queryOptions: { enabled: Boolean(dealId), retry: false },
+  });
+  if (query.isLoading) return null;
+  const customerId = deal?.customer_id != null ? String(deal.customer_id) : undefined;
+  return <QuoteCreate presetCustomerId={customerId} presetDealId={dealId} />;
+}
+
 const denied = <AccessDenied />;
+
+// Children mounted under a DealShow drawer so a related record opens its own
+// URL-addressable deeper popup. `dealParam` is the URL segment holding the deal
+// id at this nesting level ("id" in the deal module, "dealId" under a customer).
+const dealContextChildren = (
+  prefix: string,
+  dealParam: string
+): AppRouteDefinition[] => [
+  {
+    name: `${prefix}.edit`,
+    path: "edit",
+    element: (
+      <CanAccess resource="crm_deals" action="edit" fallback={denied}>
+        <DealEdit idParam={dealParam} />
+      </CanAccess>
+    ),
+  },
+  {
+    name: `${prefix}.activities.create`,
+    path: "activities/create",
+    element: (
+      <CanAccess resource="crm_activities" action="create" fallback={denied}>
+        <DealNestedActivityCreate dealParam={dealParam} />
+      </CanAccess>
+    ),
+  },
+  {
+    name: `${prefix}.activities.edit`,
+    path: "activities/edit/:activityId",
+    element: (
+      <CanAccess resource="crm_activities" action="edit" fallback={denied}>
+        <ActivityEdit idParam="activityId" />
+      </CanAccess>
+    ),
+  },
+  {
+    name: `${prefix}.quotes.create`,
+    path: "quotes/create",
+    element: (
+      <CanAccess resource="crm_quotes" action="create" fallback={denied}>
+        <DealNestedQuoteCreate dealParam={dealParam} />
+      </CanAccess>
+    ),
+  },
+  {
+    name: `${prefix}.quotes.show`,
+    path: "quotes/show/:quoteId",
+    element: (
+      <CanAccess resource="crm_quotes" action="show" fallback={denied}>
+        <QuoteShow idParam="quoteId" />
+      </CanAccess>
+    ),
+  },
+];
 
 const customerContextChildren = (
   prefix: string
@@ -120,6 +206,16 @@ const customerContextChildren = (
         <CustomerNestedDealEdit />
       </CanAccess>
     ),
+  },
+  {
+    name: `${prefix}.deals.show`,
+    path: "deals/show/:dealId",
+    element: (
+      <CanAccess resource="crm_deals" action="show" fallback={denied}>
+        <DealShow idParam="dealId" />
+      </CanAccess>
+    ),
+    children: dealContextChildren(`${prefix}.deals.show`, "dealId"),
   },
   {
     name: `${prefix}.activities.create`,
@@ -224,10 +320,31 @@ export const appRoutes = defineAppRoutes([
         priority: 5,
         icon: <UserPlus />,
         description: "Score, qualify and convert inbound demand.",
+        canCreate: true,
         acl: { type: "collection" },
       },
     },
     children: [
+      {
+        name: "crm_leads.create",
+        path: "create",
+        resourceAction: "create",
+        element: (
+          <CanAccess resource="crm_leads" action="create" fallback={denied}>
+            <LeadCreate />
+          </CanAccess>
+        ),
+      },
+      {
+        name: "crm_leads.edit",
+        path: "edit/:id",
+        resourceAction: "edit",
+        element: (
+          <CanAccess resource="crm_leads" action="edit" fallback={denied}>
+            <LeadEdit />
+          </CanAccess>
+        ),
+      },
       {
         name: "crm_leads.show",
         path: "show/:id",
@@ -284,6 +401,17 @@ export const appRoutes = defineAppRoutes([
           </CanAccess>
         ),
       },
+      {
+        name: "crm_deals.show",
+        path: "show/:id",
+        resourceAction: "show",
+        element: (
+          <CanAccess resource="crm_deals" action="show" fallback={denied}>
+            <DealShow />
+          </CanAccess>
+        ),
+        children: dealContextChildren("crm_deals.show", "id"),
+      },
     ],
   },
   {
@@ -305,10 +433,31 @@ export const appRoutes = defineAppRoutes([
         priority: 15,
         icon: <FileText />,
         description: "Commercial proposals with priced line items.",
+        canCreate: true,
         acl: { type: "collection" },
       },
     },
     children: [
+      {
+        name: "crm_quotes.create",
+        path: "create",
+        resourceAction: "create",
+        element: (
+          <CanAccess resource="crm_quotes" action="create" fallback={denied}>
+            <QuoteCreate />
+          </CanAccess>
+        ),
+      },
+      {
+        name: "crm_quotes.edit",
+        path: "edit/:id",
+        resourceAction: "edit",
+        element: (
+          <CanAccess resource="crm_quotes" action="edit" fallback={denied}>
+            <QuoteEdit />
+          </CanAccess>
+        ),
+      },
       {
         name: "crm_quotes.show",
         path: "show/:id",
@@ -394,9 +543,32 @@ export const appRoutes = defineAppRoutes([
         priority: 25,
         icon: <Package />,
         description: "Active SKUs and list prices used in quotes.",
+        canCreate: true,
         acl: { type: "collection" },
       },
     },
+    children: [
+      {
+        name: "crm_products.create",
+        path: "create",
+        resourceAction: "create",
+        element: (
+          <CanAccess resource="crm_products" action="create" fallback={denied}>
+            <ProductCreate />
+          </CanAccess>
+        ),
+      },
+      {
+        name: "crm_products.edit",
+        path: "edit/:id",
+        resourceAction: "edit",
+        element: (
+          <CanAccess resource="crm_products" action="edit" fallback={denied}>
+            <ProductEdit />
+          </CanAccess>
+        ),
+      },
+    ],
   },
   {
     name: "crm_activities",

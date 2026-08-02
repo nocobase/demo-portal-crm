@@ -1,8 +1,8 @@
 import { useList, useNotification, useOne, useTranslate } from "@refinedev/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Building2, Eye, Gauge, Mail, Phone, Sparkles, Target, Users } from "lucide-react";
+import { ArrowRight, Building2, Eye, Gauge, Mail, Pencil, Phone, Sparkles, Target, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Outlet, useParams } from "react-router";
+import { useParams } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import { ListView } from "@/components/resources/views/list-view";
 import {
@@ -136,9 +136,14 @@ export function LeadsPage() {
                     </TableCell>
                     <TableCell>{lead.owner?.nickname ?? "—"}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => openChild(`show/${lead.id}`)}>
-                        <Eye /><span className="sr-only">{translate("crm.leads.actions.view", { ns: "starter" }, "View lead")}</span>
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openChild(`show/${lead.id}`)}>
+                          <Eye /><span className="sr-only">{translate("crm.leads.actions.view", { ns: "starter" }, "View lead")}</span>
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openChild(`edit/${lead.id}`)}>
+                          <Pencil /><span className="sr-only">{translate("crm.leads.actions.edit", { ns: "starter" }, "Edit lead")}</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -150,7 +155,6 @@ export function LeadsPage() {
           </div>
         )}
       </div>
-      <Outlet />
     </ListView>
   );
 }

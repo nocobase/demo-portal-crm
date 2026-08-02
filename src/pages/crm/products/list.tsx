@@ -1,10 +1,13 @@
 import { useList, useTranslate } from "@refinedev/core";
-import { Boxes, CheckCircle2, DollarSign, PackageCheck, Search } from "lucide-react";
+import { Boxes, CheckCircle2, DollarSign, PackageCheck, Pencil, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { LoadingState } from "@/components/app-shell/loading-state";
+import { DeleteButton } from "@/components/resources/buttons/delete";
 import { ListView } from "@/components/resources/views/list-view";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useOpenContextualChild } from "../route-surfaces";
 import {
   Select,
   SelectContent,
@@ -21,6 +24,7 @@ import type { ProductRecord } from "../types";
 export function ProductsPage() {
   const translate = useTranslate();
   const locale = useLocale();
+  const openChild = useOpenContextualChild();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const { result, query } = useList<ProductRecord>({
@@ -73,6 +77,7 @@ export function ProductsPage() {
                 <TableHead>{translate("crm.products.fields.category", { ns: "starter" }, "Category")}</TableHead>
                 <TableHead className="text-right">{translate("crm.products.fields.price", { ns: "starter" }, "Unit price")}</TableHead>
                 <TableHead>{translate("crm.products.fields.active", { ns: "starter" }, "Availability")}</TableHead>
+                <TableHead className="w-24"><span className="sr-only">{translate("crm.common.actions", { ns: "starter" }, "Actions")}</span></TableHead>
               </TableRow></TableHeader>
               <TableBody>{visible.map((product) => (
                 <TableRow key={String(product.id)}>
@@ -81,6 +86,16 @@ export function ProductsPage() {
                   <TableCell><EnumBadge value={product.category} label={labelFor(PRODUCT_CATEGORIES, product.category, translate)} /></TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(product.unit_price, locale)}</TableCell>
                   <TableCell>{product.active ? <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-4" />{translate("crm.products.active", { ns: "starter" }, "Active")}</span> : <span className="text-sm text-muted-foreground">{translate("crm.products.inactive", { ns: "starter" }, "Inactive")}</span>}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openChild(`edit/${product.id}`)}>
+                        <Pencil /><span className="sr-only">{translate("crm.products.actions.edit", { ns: "starter" }, "Edit product")}</span>
+                      </Button>
+                      <DeleteButton resource="crm_products" recordItemId={product.id} variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Trash2 />
+                      </DeleteButton>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>

@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import type { ContactRecord, CustomerRecord, ProductRecord, UserRecord } from "./types";
+import type { ContactRecord, CustomerRecord, DealRecord, ProductRecord, UserRecord } from "./types";
 
 export type PickerOption = { value: string; label: string };
 
@@ -209,6 +209,79 @@ export function EntityPicker({
         </button>
       ) : null}
     </div>
+  );
+}
+
+export function useDealOptions(customerId: string | null | undefined): {
+  options: PickerOption[];
+  isLoading: boolean;
+} {
+  const { result, query } = useList<DealRecord>({
+    resource: "crm_deals",
+    filters: customerId
+      ? [{ field: "customer_id", operator: "eq", value: customerId }]
+      : [],
+    pagination: { mode: "server", currentPage: 1, pageSize: 200 },
+    sorters: [{ field: "createdAt", order: "desc" }],
+    errorNotification: false,
+    queryOptions: { retry: false, enabled: Boolean(customerId) },
+  });
+  const options = useMemo(
+    () =>
+      result.data
+        .filter((deal) => deal.title)
+        .map((deal) => ({ value: String(deal.id), label: deal.title as string })),
+    [result.data]
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+type OwnerPickerProps = {
+  value: string | null | undefined;
+  onChange: (value: string | null) => void;
+  disabled?: boolean;
+  initialOption?: PickerOption | null;
+};
+
+export function OwnerPicker({ value, onChange, disabled, initialOption }: OwnerPickerProps) {
+  const translate = useTranslate();
+  const { options } = useOwnerOptions();
+  return (
+    <EntityPicker
+      value={value}
+      onChange={onChange}
+      options={options}
+      disabled={disabled}
+      placeholder={translate("crm.pickers.owner.placeholder", { ns: "starter" }, "Assign an owner (optional)")}
+      initialOption={initialOption}
+    />
+  );
+}
+
+type DealPickerProps = {
+  customerId: string | null | undefined;
+  value: string | null | undefined;
+  onChange: (value: string | null) => void;
+  disabled?: boolean;
+  initialOption?: PickerOption | null;
+};
+
+export function DealPicker({ customerId, value, onChange, disabled, initialOption }: DealPickerProps) {
+  const translate = useTranslate();
+  const { options } = useDealOptions(customerId);
+  return (
+    <EntityPicker
+      value={customerId ? (value ?? null) : null}
+      onChange={onChange}
+      options={options}
+      disabled={disabled || !customerId}
+      placeholder={
+        customerId
+          ? translate("crm.pickers.deal.placeholder", { ns: "starter" }, "Select a deal (optional)")
+          : translate("crm.pickers.deal.customerFirst", { ns: "starter" }, "Pick a customer first")
+      }
+      initialOption={initialOption}
+    />
   );
 }
 

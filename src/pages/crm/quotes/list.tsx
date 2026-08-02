@@ -1,7 +1,7 @@
 import { useList, useNotification, useOne, useTranslate } from "@refinedev/core";
-import { CalendarClock, CheckCircle2, Eye, FileText, Plus, ReceiptText, Trash2 } from "lucide-react";
+import { CalendarClock, CheckCircle2, Eye, FileText, Pencil, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Outlet, useParams } from "react-router";
+import { useParams } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import { ListView } from "@/components/resources/views/list-view";
 import { Button } from "@/components/ui/button";
@@ -70,20 +70,20 @@ export function QuotesPage() {
                   <TableCell><EnumBadge value={quote.status} label={labelFor(QUOTE_STATUSES, quote.status, translate)} /></TableCell>
                   <TableCell>{formatDate(quote.valid_until, locale)}</TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(quote.total, locale)}</TableCell>
-                  <TableCell><Button variant="ghost" size="icon" onClick={() => openChild(`show/${quote.id}`)}><Eye /><span className="sr-only">{translate("crm.quotes.actions.view", { ns: "starter" }, "View quote")}</span></Button></TableCell>
+                  <TableCell><div className="flex items-center gap-1"><Button variant="ghost" size="icon" onClick={() => openChild(`show/${quote.id}`)}><Eye /><span className="sr-only">{translate("crm.quotes.actions.view", { ns: "starter" }, "View quote")}</span></Button><Button variant="ghost" size="icon" onClick={() => openChild(`edit/${quote.id}`)}><Pencil /><span className="sr-only">{translate("crm.quotes.actions.edit", { ns: "starter" }, "Edit quote")}</span></Button></div></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>
           </div>
         )}
       </div>
-      <Outlet />
     </ListView>
   );
 }
 
-export function QuoteShow() {
-  const { id } = useParams<{ id: string }>();
+export function QuoteShow({ idParam = "id" }: { idParam?: string }) {
+  const params = useParams<Record<string, string>>();
+  const id = params[idParam];
   const translate = useTranslate();
   const locale = useLocale();
   const closeTo = useContextualCloseTo();
