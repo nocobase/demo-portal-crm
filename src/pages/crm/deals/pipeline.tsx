@@ -28,12 +28,10 @@ export function PipelinePage() {
   });
 
   const grouped = useMemo(() => {
-    const buckets: Record<string, DealRecord[]> = {
-      inquiry: [],
-      quote: [],
-      won: [],
-      lost: [],
-    };
+    const buckets: Record<string, DealRecord[]> = {};
+    for (const stage of DEAL_STAGES) {
+      buckets[stage.value] = [];
+    }
     for (const deal of result.data) {
       const stage = deal.stage && stageExists(deal.stage) ? deal.stage : "inquiry";
       buckets[stage].push(deal);
