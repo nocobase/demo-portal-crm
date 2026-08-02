@@ -616,4 +616,32 @@ export const starter = {
   "auth.brand.foundationBody": "可靠的数据、权限、工作流与治理。",
   "auth.brand.tagline": "上层自由，底层可靠。",
   "auth.brand.headline": "从询盘到成交，跟踪每一个客户。",
+  // 可复用 AI 填单面板（src/components/ai-fill）
+  "ai.fill.title": "AI 智能填单",
+  "ai.fill.action": "AI 智能填单",
+  "ai.fill.analyzing": "正在分析...",
+  "ai.fill.undo": "撤销",
+  "ai.fill.emptyValue": "（空）",
+  "ai.fill.validation.describeFirst": "请先描述你的需求，AI 才能填写表单。",
+  "ai.fill.mode.idle": "你的描述将发送至本服务器的 AI 助手",
+  "ai.fill.mode.ai": "由 AI 填写 \u00b7 你的描述已发送至本服务器的 AI 助手",
+  "ai.fill.mode.local": "本地分析 \u00b7 AI 助手当前不可用",
+  "ai.fill.updatedFields": "已更新 {{count}} 个字段",
+  "ai.fill.noChanges": "无需改动 \u2014 表单内容已与你的描述一致。",
+  "ai.fill.skipped": "已忽略 {{count}} 个本表单不接受的值：{{names}}",
+  "ai.fill.error.timeout":
+    "AI 助手响应超时，未填写任何内容 \u2014 请重试或手动填写。",
+  "ai.fill.error.noModel": "本服务器未启用任何 AI 模型，无法自动填写表单。",
+  "ai.fill.error.unparseable": "AI 助手返回的内容无法解析，未填写任何内容。",
+  "ai.fill.error.nothingUsable": "AI 助手未返回本表单可接受的值，未填写任何内容。",
+  "ai.fill.error.unavailable":
+    "AI 助手当前不可用，未填写任何内容 \u2014 请手动填写表单。",
+  "crm.leads.form.aiFillDescription": "粘贴客户询盘、名片或通话记录，AI 助手会自动整理成线索。",
+  "crm.leads.form.aiFillLabel": "描述这条线索",
+  "crm.leads.form.aiFillPlaceholder":
+    "例如：展会上认识 Brightline Logistics 的 Sarah Chen，她管理 40 台车队，想要报价。sarah.chen@brightline.example",
+  "crm.deals.form.aiFillDescription": "粘贴通话记录或邮件往来，AI 助手会自动整理成商机。",
+  "crm.deals.form.aiFillLabel": "描述这个商机",
+  "crm.deals.form.aiFillPlaceholder":
+    "例如：Brightline Logistics 想要 40 台车载终端，约 96000 美元。上周已发报价，希望下月底前签约。",
 } as const;

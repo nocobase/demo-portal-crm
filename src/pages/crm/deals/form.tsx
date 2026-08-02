@@ -1,6 +1,8 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
+import { useMemo } from "react";
 import { useParams } from "react-router";
+import { AiFillPanel, useAiFill, type AiFillField } from "@/components/ai-fill";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useRouteSurfaceClose } from "@nocobase/portal-sdk/routing";
@@ -9,6 +11,7 @@ import {
   RouteDrawerFooter,
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
+import { DEAL_STAGES } from "../constants";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { DealFormValues, DealRecord } from "../types";
 import { DealFormFields } from "./fields";
@@ -79,6 +82,64 @@ function DealCreateForm({ presetCustomerId }: DealSurfaceProps) {
     },
   });
 
+  // Stage options come from the same constant the stage Select renders from.
+  const aiFields = useMemo<AiFillField[]>(
+    () => [
+      {
+        name: "title",
+        title: translate("crm.deals.fields.title", { ns: "starter" }, "Title"),
+        type: "string",
+        description: "A short deal name, usually the customer plus what they are buying.",
+      },
+      {
+        name: "stage",
+        title: translate("crm.deals.fields.stage", { ns: "starter" }, "Stage"),
+        type: "string",
+        enum: [...DEAL_STAGES],
+      },
+      {
+        name: "amount",
+        title: translate("crm.deals.fields.amount", { ns: "starter" }, "Amount"),
+        type: "number",
+        description:
+          "Deal value in USD as a plain number, with no currency symbol or thousands separator.",
+      },
+      {
+        name: "expected_close_date",
+        title: translate("crm.deals.fields.expectedCloseDate", { ns: "starter" }, "Expected close date"),
+        type: "date",
+        description:
+          "Expected close date as YYYY-MM-DD. Only when the text states or clearly implies a date.",
+      },
+      {
+        name: "notes",
+        title: translate("crm.deals.fields.notes", { ns: "starter" }, "Notes"),
+        type: "string",
+        description: "Anything useful that does not belong in the other fields.",
+      },
+    ],
+    [translate]
+  );
+
+  const ai = useAiFill({
+    formId: "crm-deal-create",
+    title: translate("crm.deals.drawer.create.title", { ns: "starter" }, "New deal"),
+    fields: aiFields,
+    getValues: () => form.getValues() as Record<string, unknown>,
+    setValues: (values) => {
+      for (const [name, value] of Object.entries(values)) {
+        form.setValue(name as keyof DealFormValues, value as never, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
+      }
+    },
+    instructions:
+      "A deal that is still being scoped is inquiry; once pricing has been sent it is quote. " +
+      "Only use won or lost when the text says the deal is already decided.",
+  });
+
   return (
     <Form {...form}>
       <form
@@ -86,6 +147,24 @@ function DealCreateForm({ presetCustomerId }: DealSurfaceProps) {
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+          <AiFillPanel
+            ai={ai}
+            description={translate(
+              "crm.deals.form.aiFillDescription",
+              { ns: "starter" },
+              "Paste the call note or email thread. AI assist will structure the deal for you."
+            )}
+            inputLabel={translate(
+              "crm.deals.form.aiFillLabel",
+              { ns: "starter" },
+              "Describe the deal"
+            )}
+            placeholder={translate(
+              "crm.deals.form.aiFillPlaceholder",
+              { ns: "starter" },
+              "Example: Brightline Logistics wants 40 telematics units, around 96000 USD. We sent pricing last week and they want to close before the end of next month."
+            )}
+          />
           <DealFormFields
             form={form}
             translate={translate}

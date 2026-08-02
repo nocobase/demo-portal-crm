@@ -631,4 +631,41 @@ export const starter = {
   "auth.brand.foundationBody": "Reliable data, access control, workflows and governance.",
   "auth.brand.tagline": "Freedom above. Confidence below.",
   "auth.brand.headline": "Track every account from inquiry to won.",
+  // Reusable AI form-fill panel (src/components/ai-fill)
+  "ai.fill.title": "AI assist",
+  "ai.fill.action": "Fill with AI",
+  "ai.fill.analyzing": "Analyzing...",
+  "ai.fill.undo": "Undo",
+  "ai.fill.emptyValue": "(empty)",
+  "ai.fill.validation.describeFirst":
+    "Describe what you need first, so AI assist can fill the form.",
+  "ai.fill.mode.idle": "Your description is sent to this server's AI assistant",
+  "ai.fill.mode.ai":
+    "Filled by AI \u00b7 your description was sent to this server's AI assistant",
+  "ai.fill.mode.local": "Local analysis \u00b7 the AI assistant was unavailable",
+  "ai.fill.updatedFields": "Updated {{count}} field(s)",
+  "ai.fill.noChanges":
+    "Nothing to change \u2014 the form already matches your description.",
+  "ai.fill.skipped":
+    "Ignored {{count}} value(s) this form does not accept: {{names}}",
+  "ai.fill.error.timeout":
+    "The AI assistant did not respond in time. Nothing was filled \u2014 please try again or fill the form manually.",
+  "ai.fill.error.noModel":
+    "No AI model is enabled on this server, so the form could not be filled automatically.",
+  "ai.fill.error.unparseable":
+    "The AI assistant returned a response that could not be read. Nothing was filled.",
+  "ai.fill.error.nothingUsable":
+    "The AI assistant did not return any value this form accepts. Nothing was filled.",
+  "ai.fill.error.unavailable":
+    "The AI assistant is unavailable right now. Nothing was filled \u2014 please fill the form manually.",
+  "crm.leads.form.aiFillDescription":
+    "Paste the enquiry, business card or call note. AI assist will structure the lead for you.",
+  "crm.leads.form.aiFillLabel": "Describe the lead",
+  "crm.leads.form.aiFillPlaceholder":
+    "Example: Met Sarah Chen from Brightline Logistics at the trade show; she runs a 40-vehicle fleet and asked for pricing. sarah.chen@brightline.example",
+  "crm.deals.form.aiFillDescription":
+    "Paste the call note or email thread. AI assist will structure the deal for you.",
+  "crm.deals.form.aiFillLabel": "Describe the deal",
+  "crm.deals.form.aiFillPlaceholder":
+    "Example: Brightline Logistics wants 40 telematics units, around 96000 USD. We sent pricing last week and they want to close before the end of next month.",
 } as const;
