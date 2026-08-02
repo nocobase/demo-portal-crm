@@ -1,0 +1,65 @@
+name: Deploy NocoBase Portal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-nocobase-portal
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy portal
+    runs-on: ubuntu-latest
+    env:
+      NOCOBASE_ENV_NAME: demo
+      NOCOBASE_USERNAME: ${{ secrets.NOCOBASE_USERNAME }}
+      NOCOBASE_PASSWORD: ${{ secrets.NOCOBASE_PASSWORD }}
+      NOCOBASE_API_BASE_URL: ${{ secrets.NOCOBASE_API_BASE_URL }}
+      NOCOBASE_PORTAL: ${{ secrets.NOCOBASE_PORTAL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install NocoBase CLI
+        run: npm install -g @nocobase/cli@alpha
+
+      - name: Configure NocoBase environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${NOCOBASE_USERNAME:?Missing GitHub secret NOCOBASE_USERNAME}"
+          : "${NOCOBASE_PASSWORD:?Missing GitHub secret NOCOBASE_PASSWORD}"
+          : "${NOCOBASE_API_BASE_URL:?Missing GitHub secret NOCOBASE_API_BASE_URL}"
+          : "${NOCOBASE_PORTAL:?Missing GitHub secret NOCOBASE_PORTAL}"
+
+          nb env add "${NOCOBASE_ENV_NAME}" \
+            --auth-type=basic \
+            --username="${NOCOBASE_USERNAME}" \
+            --password="${NOCOBASE_PASSWORD}" \
+            --api-base-url="${NOCOBASE_API_BASE_URL}"
+
+          nb env use "${NOCOBASE_ENV_NAME}"
+
+      - name: Deploy portal
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          nb portal pull "${NOCOBASE_PORTAL}"
+          nb portal deploy "${NOCOBASE_PORTAL}"
