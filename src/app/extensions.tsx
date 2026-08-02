@@ -21,8 +21,30 @@ const extensionModules = import.meta.glob<{ default: AppExtension }>(
   { eager: true }
 );
 
+const unavailableOptionalRuntimeExtensions = new Set([
+  "nocobase-auth-oidc",
+  "nocobase-auth-saml",
+]);
+
+const configuredExtensions: AppExtension[] = Object.values(extensionModules).map(
+  ({ default: extension }) => {
+    if (extension.id === "nocobase-mail") {
+      return { ...extension, Provider: undefined };
+    }
+    if (unavailableOptionalRuntimeExtensions.has(extension.id)) {
+      return { ...extension, AuthRuntimeProvider: undefined };
+    }
+    return extension;
+  }
+);
+
 const extensionContributions = collectAppExtensionContributions({
-  extensions: Object.values(extensionModules).map((module) => module.default),
+  // Mail demos remain installed, but this CRM runtime does not expose the
+  // unread-count API. Compose out only its global polling provider so the
+  // production shell does not issue a failing optional request on every page.
+  // OIDC and SAML demos also remain installed, while their auto-redirect
+  // providers are omitted because this runtime does not expose those APIs.
+  extensions: configuredExtensions,
   appRoutes,
   registryRoutesEnabled,
 });

@@ -1,6 +1,6 @@
 import { useList, useShow, useTranslate, useUpdate } from "@refinedev/core";
-import { CheckCircle2, Circle, Pencil, Plus, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { CalendarClock, CheckCircle2, Circle, FileText, HandCoins, HeartPulse, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 import { useOutlet, useParams } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import { DeleteButton } from "@/components/resources/buttons/delete";
@@ -9,11 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
 import {
   ACTIVITY_TYPES,
   DEAL_STAGES,
   FOLLOW_UP_STATUSES,
+  QUOTE_STATUSES,
   INDUSTRIES,
   CUSTOMER_STATUSES,
   formatCurrency,
@@ -32,6 +34,7 @@ import type {
   CustomerRecord,
   DealRecord,
   FollowUpRecord,
+  QuoteRecord,
 } from "../types";
 
 export function CustomerShow() {
@@ -141,6 +144,8 @@ export function CustomerShow() {
             {id ? (
               <>
                 <Separator />
+                <Customer360 customer={record} customerId={id} locale={locale} />
+                <Separator />
                 <ContactsSection customerId={id} />
                 <Separator />
                 <DealsSection customerId={id} locale={locale} />
@@ -154,6 +159,101 @@ export function CustomerShow() {
         )}
       </div>
     </RouteDrawer>
+  );
+}
+
+function Customer360({
+  customer,
+  customerId,
+  locale,
+}: {
+  customer?: CustomerRecord;
+  customerId: string;
+  locale: string;
+}) {
+  const translate = useTranslate();
+  const activities = useList<ActivityRecord>({
+    resource: "crm_activities",
+    filters: [{ field: "customer_id", operator: "eq", value: customerId }],
+    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const deals = useList<DealRecord>({
+    resource: "crm_deals",
+    filters: [{ field: "customer_id", operator: "eq", value: customerId }],
+    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const quotes = useList<QuoteRecord>({
+    resource: "crm_quotes",
+    filters: [{ field: "customer_id", operator: "eq", value: customerId }],
+    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const followUps = useList<FollowUpRecord>({
+    resource: "crm_follow_ups",
+    filters: [{ field: "customer_id", operator: "eq", value: customerId }],
+    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const today = new Date();
+  const cutoff = new Date(today.getTime() - 30 * 86400000);
+  const recentActivity = activities.result.data.some((activity) => activity.date && new Date(activity.date) >= cutoff);
+  const openDeals = deals.result.data.filter((deal) => ["inquiry", "quote", "negotiation"].includes(deal.stage ?? ""));
+  const acceptedQuotes = quotes.result.data.filter((quote) => quote.status === "accepted");
+  const overdue = followUps.result.data.filter((followUp) => followUp.status !== "done" && (followUp.due_date ?? "") < today.toISOString().slice(0, 10));
+  const health = Math.min(100,
+    45 +
+    (customer?.status === "active" ? 10 : 0) +
+    (recentActivity ? 15 : 0) +
+    (openDeals.length > 0 ? 12 : 0) +
+    (acceptedQuotes.length > 0 ? 13 : 0) +
+    (overdue.length === 0 ? 5 : -10)
+  );
+  const healthLabel = health >= 80
+    ? translate("crm.customers.health.strong", { ns: "starter" }, "Strong")
+    : health >= 60
+      ? translate("crm.customers.health.watch", { ns: "starter" }, "Needs attention")
+      : translate("crm.customers.health.risk", { ns: "starter" }, "At risk");
+  const timeline = useMemo(() => [
+    ...activities.result.data.map((record) => ({ id: `activity-${record.id}`, kind: "activity", date: record.date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(ACTIVITY_TYPES, record.type, translate), icon: <MessageSquare className="size-4" /> })),
+    ...deals.result.data.map((record) => ({ id: `deal-${record.id}`, kind: "deal", date: record.closed_date ?? record.updatedAt ?? record.createdAt, title: record.title ?? "—", detail: `${labelFor(DEAL_STAGES, record.stage, translate)} · ${formatCurrency(record.amount, locale)}`, icon: <HandCoins className="size-4" /> })),
+    ...quotes.result.data.map((record) => ({ id: `quote-${record.id}`, kind: "quote", date: record.issue_date ?? record.createdAt, title: record.quote_number ?? "—", detail: `${labelFor(QUOTE_STATUSES, record.status, translate)} · ${formatCurrency(record.total, locale)}`, icon: <FileText className="size-4" /> })),
+    ...followUps.result.data.map((record) => ({ id: `follow-${record.id}`, kind: "followUp", date: record.due_date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(FOLLOW_UP_STATUSES, record.status, translate), icon: <CalendarClock className="size-4" /> })),
+  ].filter((item) => item.date).sort((left, right) => String(right.date).localeCompare(String(left.date))).slice(0, 14), [activities.result.data, deals.result.data, followUps.result.data, locale, quotes.result.data, translate]);
+
+  return (
+    <section className="space-y-5">
+      <div className="grid gap-4 lg:grid-cols-[14rem_1fr]">
+        <div className="rounded-xl border bg-gradient-to-br from-blue-500/10 via-sky-500/5 to-transparent p-5">
+          <div className="flex items-center justify-between"><HeartPulse className="size-5 text-blue-600" /><span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">{healthLabel}</span></div>
+          <p className="mt-5 text-sm text-muted-foreground">{translate("crm.customers.health.title", { ns: "starter" }, "Account health")}</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">{health}<span className="text-base text-muted-foreground">/100</span></p>
+          <Progress value={health} className="mt-4" />
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">{translate("crm.customers.health.description", { ns: "starter" }, "Based on recency, open pipeline, accepted quotes and overdue follow-ups.")}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl border p-4"><p className="text-xs text-muted-foreground">{translate("crm.customers.health.recent", { ns: "starter" }, "Recent activity")}</p><p className="mt-2 text-xl font-semibold">{recentActivity ? translate("crm.common.yes", { ns: "starter" }, "Yes") : translate("crm.common.no", { ns: "starter" }, "No")}</p></div>
+          <div className="rounded-xl border p-4"><p className="text-xs text-muted-foreground">{translate("crm.customers.health.openDeals", { ns: "starter" }, "Open deals")}</p><p className="mt-2 text-xl font-semibold tabular-nums">{openDeals.length}</p></div>
+          <div className="rounded-xl border p-4"><p className="text-xs text-muted-foreground">{translate("crm.customers.health.acceptedQuotes", { ns: "starter" }, "Accepted quotes")}</p><p className="mt-2 text-xl font-semibold tabular-nums">{acceptedQuotes.length}</p></div>
+          <div className="rounded-xl border p-4"><p className="text-xs text-muted-foreground">{translate("crm.customers.health.overdue", { ns: "starter" }, "Overdue follow-ups")}</p><p className="mt-2 text-xl font-semibold tabular-nums">{overdue.length}</p></div>
+        </div>
+      </div>
+      <DrawerSection title={translate("crm.customers.timeline.title", { ns: "starter" }, "Account timeline")}>
+        <div className="relative space-y-1 before:absolute before:top-4 before:bottom-4 before:left-[1.15rem] before:w-px before:bg-border">
+          {timeline.map((item) => (
+            <div key={item.id} className="relative flex gap-3 rounded-lg px-1 py-2.5 hover:bg-accent/50">
+              <div className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-card text-blue-600">{item.icon}</div>
+              <div className="min-w-0 flex-1"><div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between"><p className="truncate text-sm font-medium">{item.title}</p><time className="shrink-0 text-xs text-muted-foreground">{formatDateTime(item.date, locale)}</time></div><p className="mt-0.5 text-xs text-muted-foreground">{translate(`crm.customers.timeline.${item.kind}`, { ns: "starter" }, item.kind)} · {item.detail}</p></div>
+            </div>
+          ))}
+        </div>
+      </DrawerSection>
+    </section>
   );
 }
 

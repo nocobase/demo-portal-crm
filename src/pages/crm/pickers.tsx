@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import type { ContactRecord, CustomerRecord } from "./types";
+import type { ContactRecord, CustomerRecord, ProductRecord, UserRecord } from "./types";
 
 export type PickerOption = { value: string; label: string };
 
@@ -32,6 +32,47 @@ export function useCustomerOptions(): {
           value: String(customer.id),
           label: customer.company_name as string,
         })),
+    [result.data]
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useOwnerOptions(): { options: PickerOption[]; isLoading: boolean } {
+  const { result, query } = useList<UserRecord>({
+    resource: "users",
+    pagination: { mode: "server", currentPage: 1, pageSize: 100 },
+    sorters: [{ field: "nickname", order: "asc" }],
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const options = useMemo(
+    () => result.data.filter((user) => user.nickname).map((user) => ({
+      value: String(user.id),
+      label: user.nickname as string,
+    })),
+    [result.data]
+  );
+  return { options, isLoading: query.isLoading };
+}
+
+export function useProductOptions(): {
+  options: Array<PickerOption & { product: ProductRecord }>;
+  isLoading: boolean;
+} {
+  const { result, query } = useList<ProductRecord>({
+    resource: "crm_products",
+    filters: [{ field: "active", operator: "eq", value: true }],
+    pagination: { mode: "server", currentPage: 1, pageSize: 200 },
+    sorters: [{ field: "name", order: "asc" }],
+    errorNotification: false,
+    queryOptions: { retry: false },
+  });
+  const options = useMemo(
+    () => result.data.filter((product) => product.name).map((product) => ({
+      value: String(product.id),
+      label: `${product.name} · ${product.sku ?? ""}`,
+      product,
+    })),
     [result.data]
   );
   return { options, isLoading: query.isLoading };

@@ -1,8 +1,13 @@
 import {
   Activity,
+  BarChart3,
   Building2,
   CalendarClock,
+  FileText,
   LayoutDashboard,
+  Package,
+  Target,
+  UserPlus,
   Workflow,
 } from "lucide-react";
 import { useParams } from "react-router";
@@ -27,7 +32,12 @@ import { DealCreate, DealEdit } from "@/pages/crm/deals/form";
 import { PipelinePage } from "@/pages/crm/deals/pipeline";
 import { FollowUpCreate, FollowUpEdit } from "@/pages/crm/follow-ups/form";
 import { FollowUpsLayout } from "@/pages/crm/follow-ups/list";
+import { LeadShow, LeadsPage } from "@/pages/crm/leads/list";
+import { ProductsPage } from "@/pages/crm/products/list";
+import { QuoteShow, QuotesPage } from "@/pages/crm/quotes/list";
+import { ReportsPage } from "@/pages/crm/reports/page";
 import { crmRoutes } from "@/pages/crm/routes";
+import { TargetsPage } from "@/pages/crm/targets/page";
 
 export const registryRoutesEnabled = false;
 
@@ -196,6 +206,41 @@ export const appRoutes = defineAppRoutes([
     ],
   },
   {
+    name: "crm_leads",
+    path: crmRoutes.leads,
+    element: (
+      <CanAccess resource="crm_leads" action="list" fallback={denied}>
+        <LeadsPage />
+      </CanAccess>
+    ),
+    resource: {
+      meta: {
+        label: "Leads",
+        singularLabel: "Lead",
+        i18nKey: "crm.resources.leads",
+        i18nSingularKey: "crm.resources.lead",
+        i18nOptions: { ns: "starter" },
+        descriptionI18nKey: "crm.resources.leads.description",
+        priority: 5,
+        icon: <UserPlus />,
+        description: "Score, qualify and convert inbound demand.",
+        acl: { type: "collection" },
+      },
+    },
+    children: [
+      {
+        name: "crm_leads.show",
+        path: "show/:id",
+        resourceAction: "show",
+        element: (
+          <CanAccess resource="crm_leads" action="show" fallback={denied}>
+            <LeadShow />
+          </CanAccess>
+        ),
+      },
+    ],
+  },
+  {
     name: "crm_deals",
     path: crmRoutes.pipeline,
     element: (
@@ -236,6 +281,41 @@ export const appRoutes = defineAppRoutes([
         element: (
           <CanAccess resource="crm_deals" action="edit" fallback={denied}>
             <DealEdit />
+          </CanAccess>
+        ),
+      },
+    ],
+  },
+  {
+    name: "crm_quotes",
+    path: crmRoutes.quotes,
+    element: (
+      <CanAccess resource="crm_quotes" action="list" fallback={denied}>
+        <QuotesPage />
+      </CanAccess>
+    ),
+    resource: {
+      meta: {
+        label: "Quotes",
+        singularLabel: "Quote",
+        i18nKey: "crm.resources.quotes",
+        i18nSingularKey: "crm.resources.quote",
+        i18nOptions: { ns: "starter" },
+        descriptionI18nKey: "crm.resources.quotes.description",
+        priority: 15,
+        icon: <FileText />,
+        description: "Commercial proposals with priced line items.",
+        acl: { type: "collection" },
+      },
+    },
+    children: [
+      {
+        name: "crm_quotes.show",
+        path: "show/:id",
+        resourceAction: "show",
+        element: (
+          <CanAccess resource="crm_quotes" action="show" fallback={denied}>
+            <QuoteShow />
           </CanAccess>
         ),
       },
@@ -294,6 +374,29 @@ export const appRoutes = defineAppRoutes([
         children: customerContextChildren("crm_customers.show"),
       },
     ],
+  },
+  {
+    name: "crm_products",
+    path: crmRoutes.products,
+    element: (
+      <CanAccess resource="crm_products" action="list" fallback={denied}>
+        <ProductsPage />
+      </CanAccess>
+    ),
+    resource: {
+      meta: {
+        label: "Products",
+        singularLabel: "Product",
+        i18nKey: "crm.resources.products",
+        i18nSingularKey: "crm.resources.product",
+        i18nOptions: { ns: "starter" },
+        descriptionI18nKey: "crm.resources.products.description",
+        priority: 25,
+        icon: <Package />,
+        description: "Active SKUs and list prices used in quotes.",
+        acl: { type: "collection" },
+      },
+    },
   },
   {
     name: "crm_activities",
@@ -378,5 +481,47 @@ export const appRoutes = defineAppRoutes([
         ),
       },
     ],
+  },
+  {
+    name: "crm_targets",
+    path: crmRoutes.targets,
+    element: (
+      <CanAccess resource="crm_targets" action="list" fallback={denied}>
+        <TargetsPage />
+      </CanAccess>
+    ),
+    resource: {
+      meta: {
+        label: "Targets",
+        i18nKey: "crm.resources.targets",
+        i18nOptions: { ns: "starter" },
+        descriptionI18nKey: "crm.resources.targets.description",
+        priority: 50,
+        icon: <Target />,
+        description: "Monthly quotas, attainment and owner rankings.",
+        acl: { type: "collection" },
+      },
+    },
+  },
+  {
+    name: "crm_reports",
+    path: crmRoutes.reports,
+    element: (
+      <CanAccess resource="crm_deals" action="list" fallback={denied}>
+        <ReportsPage />
+      </CanAccess>
+    ),
+    resource: {
+      meta: {
+        label: "Reports",
+        i18nKey: "crm.resources.reports",
+        i18nOptions: { ns: "starter" },
+        descriptionI18nKey: "crm.resources.reports.description",
+        priority: 60,
+        icon: <BarChart3 />,
+        description: "Pivot views of pipeline ownership and won revenue.",
+        acl: false,
+      },
+    },
   },
 ]);

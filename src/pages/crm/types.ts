@@ -107,3 +107,66 @@ export type FollowUpFormValues = {
   customer_id: string | null;
   notes: string;
 };
+
+export type UserRecord = {
+  id: string | number;
+  nickname?: string | null;
+  email?: string | null;
+};
+
+export type LeadRecord = {
+  id: string | number;
+  name?: string;
+  company?: string;
+  email?: string | null;
+  phone?: string | null;
+  source?: string | null;
+  status?: string | null;
+  score?: number | null;
+  owner_id?: string | number | null;
+  owner?: UserRecord | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ProductRecord = {
+  id: string | number;
+  sku?: string;
+  name?: string;
+  category?: string | null;
+  unit_price?: number | null;
+  active?: boolean | null;
+};
+
+export type QuoteItemRecord = {
+  id: string | number;
+  quote_id?: string | number | null;
+  product_id?: string | number | null;
+  product_name?: string;
+  qty?: number | null;
+  unit_price?: number | null;
+  product?: ProductRecord | null;
+};
+
+export type QuoteRecord = {
+  id: string | number;
+  quote_number?: string;
+  deal_id?: string | number | null;
+  customer_id?: string | number | null;
+  status?: string | null;
+  issue_date?: string | null;
+  valid_until?: string | null;
+  total?: number | null;
+  deal?: DealRecord | null;
+  customer?: CustomerRecord | null;
+  items?: QuoteItemRecord[];
+  createdAt?: string;
+};
+
+export type TargetRecord = {
+  id: string | number;
+  owner_id?: string | number | null;
+  period?: string | null;
+  quota_amount?: number | null;
+  owner?: UserRecord | null;
+};

@@ -13,4 +13,11 @@ export const crmRoutes = {
   followUps: "/follow-ups",
   followUpsCreate: "/follow-ups/create",
   followUpsEdit: "/follow-ups/edit/:id",
+  leads: "/leads",
+  leadsShow: "/leads/show/:id",
+  quotes: "/quotes",
+  quotesShow: "/quotes/show/:id",
+  products: "/products",
+  targets: "/targets",
+  reports: "/reports",
 } as const;

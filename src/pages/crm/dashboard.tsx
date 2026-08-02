@@ -14,6 +14,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { nocobaseClient } from "@nocobase/portal-sdk/client";
 import {
+  ACTIVITY_TYPES,
+  CRM_CHART_COLORS,
+  DEAL_STAGE_PROBABILITY,
   DEAL_STAGES,
   FOLLOW_UP_STATUSES,
   OPEN_DEAL_STAGES,
@@ -21,6 +24,8 @@ import {
   formatDate,
   labelFor,
 } from "./constants";
+import { useReportAnalytics } from "./analytics";
+import { ChartCard } from "./overview-cards";
 import { useOpenContextualChild } from "./route-surfaces";
 import { EnumBadge, useLocale } from "./shared";
 import type { CustomerRecord, DealRecord, FollowUpRecord } from "./types";
@@ -133,6 +138,7 @@ export function DashboardPage() {
   const openChild = useOpenContextualChild();
   const summary = usePipelineSummary();
   const dormant = useDormantAccounts();
+  const analytics = useReportAnalytics();
 
   const soon = format(addDays(new Date(), 30), "yyyy-MM-dd");
   const closingSoon = useList<DealRecord>({
@@ -165,6 +171,12 @@ export function DashboardPage() {
   const wonTotal = Number(summary.data?.wonThisMonth?.total ?? 0);
   const wonCount = Number(summary.data?.wonThisMonth?.count ?? 0);
   const dormantTotal = dormant.data?.total ?? 0;
+  const weightedForecast = (analytics.data?.byStage ?? [])
+    .filter((row) => OPEN_DEAL_STAGES.some((stage) => stage === row.stage))
+    .reduce(
+      (sum, row) => sum + Number(row.amount ?? 0) * (DEAL_STAGE_PROBABILITY[String(row.stage ?? "")] ?? 0),
+      0
+    );
 
   const byStage = DEAL_STAGES.map((stage) => {
     const row = summary.data?.byStage.find(
@@ -179,6 +191,7 @@ export function DashboardPage() {
   });
 
   const chartOption = {
+    color: CRM_CHART_COLORS,
     grid: { left: 8, right: 8, top: 16, bottom: 24, containLabel: true },
     tooltip: { trigger: "axis" },
     xAxis: {
@@ -199,13 +212,56 @@ export function DashboardPage() {
         data: byStage.map((stage, index) => ({
           value: stage.total,
           itemStyle: {
-            color: `var(--chart-${(index % 5) + 1})`,
+            color: CRM_CHART_COLORS[index % CRM_CHART_COLORS.length],
             borderRadius: [6, 6, 0, 0],
           },
         })),
       },
     ],
   };
+
+  const wonLossRows = analytics.data?.wonLoss ?? [];
+  const winLossOption = {
+    color: ["#2563eb", "#93c5fd"],
+    tooltip: { trigger: "item" },
+    legend: { bottom: 0, textStyle: { color: "var(--muted-foreground)" } },
+    series: [{
+      type: "pie",
+      radius: ["52%", "72%"],
+      center: ["50%", "45%"],
+      itemStyle: { borderColor: "var(--card)", borderWidth: 3 },
+      label: { color: "var(--muted-foreground)", formatter: "{b}\n{c}" },
+      data: ["won", "lost"].map((stage) => ({
+        name: labelFor(DEAL_STAGES, stage, translate),
+        value: Number(wonLossRows.find((row) => row.stage === stage)?.count ?? 0),
+      })),
+    }],
+  };
+  const monthlyRows = analytics.data?.monthly ?? [];
+  const monthlyOption = {
+    color: ["#2563eb"],
+    tooltip: { trigger: "axis" },
+    grid: { left: 8, right: 36, top: 20, bottom: 28, containLabel: true },
+    xAxis: { type: "category", boundaryGap: false, data: monthlyRows.map((row) => row.month), axisLabel: { color: "var(--muted-foreground)", interval: 0 }, axisLine: { lineStyle: { color: "var(--border)" } } },
+    yAxis: { type: "value", axisLabel: { color: "var(--muted-foreground)" }, splitLine: { lineStyle: { color: "var(--border)", opacity: 0.55 } } },
+    series: [{ type: "line", smooth: true, symbolSize: 8, lineStyle: { width: 3 }, areaStyle: { color: "rgba(37,99,235,.13)" }, data: monthlyRows.map((row) => row.amount) }],
+  };
+  const activityRows = ACTIVITY_TYPES.map((type) => ({
+    label: labelFor(ACTIVITY_TYPES, type.value, translate),
+    count: Number(analytics.data?.activity.find((row) => row.type === type.value)?.count ?? 0),
+  }));
+  const activityOption = {
+    color: CRM_CHART_COLORS,
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: 8, right: 16, top: 20, bottom: 28, containLabel: true },
+    xAxis: { type: "category", data: activityRows.map((row) => row.label), axisLabel: { color: "var(--muted-foreground)" }, axisLine: { lineStyle: { color: "var(--border)" } } },
+    yAxis: { type: "value", minInterval: 1, axisLabel: { color: "var(--muted-foreground)" }, splitLine: { lineStyle: { color: "var(--border)", opacity: 0.55 } } },
+    series: [{ type: "bar", barMaxWidth: 44, data: activityRows.map((row, index) => ({ value: row.count, itemStyle: { color: CRM_CHART_COLORS[index], borderRadius: [6, 6, 0, 0] } })) }],
+  };
+  const leaderboard = (analytics.data?.pipeline ?? [])
+    .filter((row) => row.stage === "won" && row.owner_name)
+    .map((row) => ({ name: String(row.owner_name), amount: Number(row.amount ?? 0), count: Number(row.count ?? 0) }))
+    .sort((left, right) => right.amount - left.amount);
 
   const today = todayIso();
 
@@ -224,7 +280,7 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard
           loading={summary.isLoading}
           label={translate("crm.dashboard.openPipeline", { ns: "starter" }, "Open pipeline")}
@@ -234,6 +290,12 @@ export function DashboardPage() {
             { ns: "starter", count: openCount },
             `${openCount} active deals`
           )}
+        />
+        <KpiCard
+          loading={analytics.isLoading}
+          label={translate("crm.dashboard.weightedForecast", { ns: "starter" }, "Weighted forecast")}
+          value={formatCurrency(weightedForecast, locale)}
+          sub={translate("crm.dashboard.weightedForecast.sub", { ns: "starter" }, "Stage probability applied to every deal")}
         />
         <KpiCard
           loading={summary.isLoading}
@@ -285,7 +347,7 @@ export function DashboardPage() {
             {summary.isLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : (
-              <ReactECharts option={chartOption} style={{ height: 256 }} />
+              <ReactECharts option={chartOption} opts={{ renderer: "svg" }} style={{ height: 256 }} />
             )}
           </CardContent>
         </Card>
@@ -471,6 +533,41 @@ export function DashboardPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <ChartCard title={translate("crm.dashboard.winLoss.title", { ns: "starter" }, "Win / loss analysis")} description={translate("crm.dashboard.winLoss.description", { ns: "starter" }, "Closed deals split by outcome.")}>
+          {analytics.isLoading ? <Skeleton className="h-72 w-full" /> : <ReactECharts option={winLossOption} opts={{ renderer: "svg" }} style={{ height: 288 }} />}
+        </ChartCard>
+        <ChartCard className="xl:col-span-2" title={translate("crm.dashboard.monthly.title", { ns: "starter" }, "Monthly won revenue")} description={translate("crm.dashboard.monthly.description", { ns: "starter" }, "Closed-won value by month.")}>
+          {analytics.isLoading ? <Skeleton className="h-72 w-full" /> : <ReactECharts option={monthlyOption} opts={{ renderer: "svg" }} style={{ height: 288 }} />}
+        </ChartCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <ChartCard title={translate("crm.dashboard.activityVolume.title", { ns: "starter" }, "Activity volume")} description={translate("crm.dashboard.activityVolume.description", { ns: "starter" }, "Logged calls, meetings and emails.")}>
+          {analytics.isLoading ? <Skeleton className="h-72 w-full" /> : <ReactECharts option={activityOption} opts={{ renderer: "svg" }} style={{ height: 288 }} />}
+        </ChartCard>
+        <ChartCard title={translate("crm.dashboard.topAccounts.title", { ns: "starter" }, "Top accounts")} description={translate("crm.dashboard.topAccounts.description", { ns: "starter" }, "Accounts ranked by total deal value.")}>
+          <div className="space-y-1">
+            {(analytics.data?.topAccounts ?? []).map((row, index) => (
+              <div key={String(row.customer_id ?? index)} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 hover:bg-accent">
+                <div className="flex min-w-0 items-center gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-semibold text-blue-700 dark:text-blue-300">{index + 1}</span><div className="min-w-0"><p className="truncate text-sm font-medium">{row.customer_name ?? translate("crm.reports.unassigned", { ns: "starter" }, "Unassigned")}</p><p className="text-xs text-muted-foreground">{translate("crm.dashboard.dealCount", { ns: "starter", count: Number(row.count ?? 0) }, `${Number(row.count ?? 0)} deals`)}</p></div></div>
+                <span className="text-sm font-semibold tabular-nums">{formatCurrency(Number(row.amount ?? 0), locale)}</span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+        <ChartCard title={translate("crm.dashboard.leaderboard.title", { ns: "starter" }, "Sales leaderboard")} description={translate("crm.dashboard.leaderboard.description", { ns: "starter" }, "Owners ranked by won revenue.")}>
+          <div className="space-y-1">
+            {leaderboard.map((row, index) => (
+              <div key={row.name} className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 hover:bg-accent">
+                <div className="flex min-w-0 items-center gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-500/10 text-xs font-semibold text-sky-700 dark:text-sky-300">{index + 1}</span><div className="min-w-0"><p className="truncate text-sm font-medium">{row.name}</p><p className="text-xs text-muted-foreground">{translate("crm.dashboard.wonDeals", { ns: "starter", count: row.count }, `${row.count} won deals`)}</p></div></div>
+                <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.amount, locale)}</span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
       </div>
       <Outlet />
     </div>
