@@ -10,248 +10,164 @@ import {
   UserPlus,
   Workflow,
 } from "lucide-react";
-import { useOne } from "@refinedev/core";
-import { useParams } from "react-router";
 
 import {
   defineAppRoutes,
   type AppRouteDefinition,
 } from "@nocobase/portal-sdk/routing";
-import { AccessDenied } from "@/components/access-control/access-denied";
-import { CanAccess } from "@/components/access-control/can-access";
-import { ActivityCreate, ActivityEdit } from "@/pages/crm/activities/form";
-import { ActivitiesLayout } from "@/pages/crm/activities/list";
-import { ContactCreate, ContactEdit } from "@/pages/crm/contacts/form";
-import {
-  CustomerCreate,
-  CustomerEdit,
-} from "@/pages/crm/customers/create-edit";
-import { CustomersLayout } from "@/pages/crm/customers/list";
-import { CustomerShow } from "@/pages/crm/customers/show";
-import { DashboardPage } from "@/pages/crm/dashboard";
-import { DealCreate, DealEdit } from "@/pages/crm/deals/form";
-import { DealShow } from "@/pages/crm/deals/show";
-import { PipelinePage } from "@/pages/crm/deals/pipeline";
-import { FollowUpCreate, FollowUpEdit } from "@/pages/crm/follow-ups/form";
-import { FollowUpsLayout } from "@/pages/crm/follow-ups/list";
-import { LeadCreate, LeadEdit } from "@/pages/crm/leads/form";
-import { LeadShow, LeadsPage } from "@/pages/crm/leads/list";
-import { ProductCreate, ProductEdit } from "@/pages/crm/products/form";
-import { ProductsPage } from "@/pages/crm/products/list";
-import { QuoteCreate, QuoteEdit } from "@/pages/crm/quotes/form";
-import { QuoteShow, QuotesPage } from "@/pages/crm/quotes/list";
-import { ReportsPage } from "@/pages/crm/reports/page";
 import { crmRoutes } from "@/pages/crm/routes";
-import { TargetsPage } from "@/pages/crm/targets/page";
-import type { DealRecord } from "@/pages/crm/types";
 
 export const registryRoutesEnabled = false;
 
-function CustomerNestedDealCreate() {
-  const { id } = useParams<{ id: string }>();
-  return <DealCreate presetCustomerId={id} />;
-}
-
-function CustomerNestedDealEdit() {
-  const { id } = useParams<{ id: string }>();
-  return <DealEdit presetCustomerId={id} idParam="dealId" />;
-}
-
-function CustomerNestedActivityCreate() {
-  const { id } = useParams<{ id: string }>();
-  return <ActivityCreate presetCustomerId={id} />;
-}
-
-function CustomerNestedActivityEdit() {
-  const { id } = useParams<{ id: string }>();
-  return <ActivityEdit presetCustomerId={id} idParam="activityId" />;
-}
-
-function CustomerNestedFollowUpCreate() {
-  const { id } = useParams<{ id: string }>();
-  return <FollowUpCreate presetCustomerId={id} />;
-}
-
-function CustomerNestedFollowUpEdit() {
-  const { id } = useParams<{ id: string }>();
-  return <FollowUpEdit presetCustomerId={id} idParam="followUpId" />;
-}
-
-function DealNestedActivityCreate({ dealParam }: { dealParam: string }) {
-  const params = useParams<Record<string, string>>();
-  const dealId = params[dealParam];
-  const { result: deal, query } = useOne<DealRecord>({
-    resource: "crm_deals",
-    id: dealId,
-    queryOptions: { enabled: Boolean(dealId), retry: false },
-  });
-  if (query.isLoading) return null;
-  const customerId = deal?.customer_id != null ? String(deal.customer_id) : undefined;
-  return <ActivityCreate presetCustomerId={customerId} presetDealId={dealId} />;
-}
-
-function DealNestedQuoteCreate({ dealParam }: { dealParam: string }) {
-  const params = useParams<Record<string, string>>();
-  const dealId = params[dealParam];
-  const { result: deal, query } = useOne<DealRecord>({
-    resource: "crm_deals",
-    id: dealId,
-    queryOptions: { enabled: Boolean(dealId), retry: false },
-  });
-  if (query.isLoading) return null;
-  const customerId = deal?.customer_id != null ? String(deal.customer_id) : undefined;
-  return <QuoteCreate presetCustomerId={customerId} presetDealId={dealId} />;
-}
-
-const denied = <AccessDenied />;
-
-// Children mounted under a DealShow drawer so a related record opens its own
-// URL-addressable deeper popup. `dealParam` is the URL segment holding the deal
-// id at this nesting level ("id" in the deal module, "dealId" under a customer).
+// Children mounted under a Deal drawer keep related records URL-addressable.
 const dealContextChildren = (
   prefix: string,
-  dealParam: string
-): AppRouteDefinition[] => [
-  {
-    name: `${prefix}.edit`,
-    path: "edit",
-    element: (
-      <CanAccess resource="crm_deals" action="edit" fallback={denied}>
-        <DealEdit idParam={dealParam} />
-      </CanAccess>
-    ),
-  },
-  {
-    name: `${prefix}.activities.create`,
-    path: "activities/create",
-    element: (
-      <CanAccess resource="crm_activities" action="create" fallback={denied}>
-        <DealNestedActivityCreate dealParam={dealParam} />
-      </CanAccess>
-    ),
-  },
-  {
-    name: `${prefix}.activities.edit`,
-    path: "activities/edit/:activityId",
-    element: (
-      <CanAccess resource="crm_activities" action="edit" fallback={denied}>
-        <ActivityEdit idParam="activityId" />
-      </CanAccess>
-    ),
-  },
-  {
-    name: `${prefix}.quotes.create`,
-    path: "quotes/create",
-    element: (
-      <CanAccess resource="crm_quotes" action="create" fallback={denied}>
-        <DealNestedQuoteCreate dealParam={dealParam} />
-      </CanAccess>
-    ),
-  },
-  {
-    name: `${prefix}.quotes.show`,
-    path: "quotes/show/:quoteId",
-    element: (
-      <CanAccess resource="crm_quotes" action="show" fallback={denied}>
-        <QuoteShow idParam="quoteId" />
-      </CanAccess>
-    ),
-  },
-];
+  dealParam: "id" | "dealId"
+): AppRouteDefinition[] => {
+  const nestedUnderCustomer = dealParam === "dealId";
 
+  return [
+    {
+      name: `${prefix}.edit`,
+      path: "edit",
+      lazy: () =>
+        import("@/pages/crm/deals/route-components").then((module) => ({
+          default: nestedUnderCustomer
+            ? module.CustomerDealEditRoute
+            : module.DealEditRoute,
+        })),
+    },
+    {
+      name: `${prefix}.activities.create`,
+      path: "activities/create",
+      lazy: () =>
+        import("@/pages/crm/activities/route-components").then((module) => ({
+          default: nestedUnderCustomer
+            ? module.CustomerDealActivityCreateRoute
+            : module.DealActivityCreateRoute,
+        })),
+    },
+    {
+      name: `${prefix}.activities.edit`,
+      path: "activities/edit/:activityId",
+      lazy: () =>
+        import("@/pages/crm/activities/route-components").then(
+          ({ NestedActivityEditRoute }) => ({
+            default: NestedActivityEditRoute,
+          })
+        ),
+    },
+    {
+      name: `${prefix}.quotes.create`,
+      path: "quotes/create",
+      lazy: () =>
+        import("@/pages/crm/quotes/route-components").then((module) => ({
+          default: nestedUnderCustomer
+            ? module.CustomerDealQuoteCreateRoute
+            : module.DealQuoteCreateRoute,
+        })),
+    },
+    {
+      name: `${prefix}.quotes.show`,
+      path: "quotes/show/:quoteId",
+      lazy: () =>
+        import("@/pages/crm/quotes/route-components").then(
+          ({ NestedQuoteShowRoute }) => ({ default: NestedQuoteShowRoute })
+        ),
+    },
+  ];
+};
 const customerContextChildren = (
   prefix: string
 ): AppRouteDefinition[] => [
   {
     name: `${prefix}.edit`,
     path: "edit",
-    element: (
-      <CanAccess resource="crm_customers" action="edit" fallback={denied}>
-        <CustomerEdit />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/customers/route-components").then(
+        ({ CustomerEditRoute }) => ({ default: CustomerEditRoute })
+      ),
   },
   {
     name: `${prefix}.contacts.create`,
     path: "contacts/create",
-    element: (
-      <CanAccess resource="crm_contacts" action="create" fallback={denied}>
-        <ContactCreate />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/contacts/route-components").then(
+        ({ ContactCreateRoute }) => ({ default: ContactCreateRoute })
+      ),
   },
   {
     name: `${prefix}.contacts.edit`,
     path: "contacts/edit/:contactId",
-    element: (
-      <CanAccess resource="crm_contacts" action="edit" fallback={denied}>
-        <ContactEdit />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/contacts/route-components").then(
+        ({ ContactEditRoute }) => ({ default: ContactEditRoute })
+      ),
   },
   {
     name: `${prefix}.deals.create`,
     path: "deals/create",
-    element: (
-      <CanAccess resource="crm_deals" action="create" fallback={denied}>
-        <CustomerNestedDealCreate />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/deals/route-components").then(
+        ({ CustomerDealCreateRoute }) => ({ default: CustomerDealCreateRoute })
+      ),
   },
   {
     name: `${prefix}.deals.edit`,
     path: "deals/edit/:dealId",
-    element: (
-      <CanAccess resource="crm_deals" action="edit" fallback={denied}>
-        <CustomerNestedDealEdit />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/deals/route-components").then(
+        ({ CustomerDealEditRoute }) => ({ default: CustomerDealEditRoute })
+      ),
   },
   {
     name: `${prefix}.deals.show`,
     path: "deals/show/:dealId",
-    element: (
-      <CanAccess resource="crm_deals" action="show" fallback={denied}>
-        <DealShow idParam="dealId" />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/deals/route-components").then(
+        ({ CustomerDealShowRoute }) => ({ default: CustomerDealShowRoute })
+      ),
     children: dealContextChildren(`${prefix}.deals.show`, "dealId"),
   },
   {
     name: `${prefix}.activities.create`,
     path: "activities/create",
-    element: (
-      <CanAccess resource="crm_activities" action="create" fallback={denied}>
-        <CustomerNestedActivityCreate />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/activities/route-components").then(
+        ({ CustomerActivityCreateRoute }) => ({
+          default: CustomerActivityCreateRoute,
+        })
+      ),
   },
   {
     name: `${prefix}.activities.edit`,
     path: "activities/edit/:activityId",
-    element: (
-      <CanAccess resource="crm_activities" action="edit" fallback={denied}>
-        <CustomerNestedActivityEdit />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/activities/route-components").then(
+        ({ CustomerActivityEditRoute }) => ({
+          default: CustomerActivityEditRoute,
+        })
+      ),
   },
   {
     name: `${prefix}.followUps.create`,
     path: "follow-ups/create",
-    element: (
-      <CanAccess resource="crm_follow_ups" action="create" fallback={denied}>
-        <CustomerNestedFollowUpCreate />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/follow-ups/route-components").then(
+        ({ CustomerFollowUpCreateRoute }) => ({
+          default: CustomerFollowUpCreateRoute,
+        })
+      ),
   },
   {
     name: `${prefix}.followUps.edit`,
     path: "follow-ups/edit/:followUpId",
-    element: (
-      <CanAccess resource="crm_follow_ups" action="edit" fallback={denied}>
-        <CustomerNestedFollowUpEdit />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/follow-ups/route-components").then(
+        ({ CustomerFollowUpEditRoute }) => ({
+          default: CustomerFollowUpEditRoute,
+        })
+      ),
   },
 ];
 
@@ -259,7 +175,10 @@ export const appRoutes = defineAppRoutes([
   {
     name: "dashboard",
     path: crmRoutes.dashboard,
-    element: <DashboardPage />,
+    lazy: () =>
+      import("@/pages/crm/dashboard").then(({ DashboardPage }) => ({
+        default: DashboardPage,
+      })),
     resource: {
       meta: {
         label: "Dashboard",
@@ -274,41 +193,37 @@ export const appRoutes = defineAppRoutes([
       {
         name: "dashboard.deal.edit",
         path: "deals/edit/:id",
-        element: (
-          <CanAccess resource="crm_deals" action="edit" fallback={denied}>
-            <DealEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/deals/route-components").then(
+            ({ DealEditRoute }) => ({ default: DealEditRoute })
+          ),
       },
       {
         name: "dashboard.customer.show",
         path: "customers/show/:id",
-        element: (
-          <CanAccess resource="crm_customers" action="show" fallback={denied}>
-            <CustomerShow />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/customers/route-components").then(
+            ({ CustomerShowRoute }) => ({ default: CustomerShowRoute })
+          ),
         children: customerContextChildren("dashboard.customer.show"),
       },
       {
         name: "dashboard.followUp.edit",
         path: "follow-ups/edit/:id",
-        element: (
-          <CanAccess resource="crm_follow_ups" action="edit" fallback={denied}>
-            <FollowUpEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/follow-ups/route-components").then(
+            ({ FollowUpEditRoute }) => ({ default: FollowUpEditRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_leads",
     path: crmRoutes.leads,
-    element: (
-      <CanAccess resource="crm_leads" action="list" fallback={denied}>
-        <LeadsPage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/leads/route-components").then(
+        ({ LeadsRoute }) => ({ default: LeadsRoute })
+      ),
     resource: {
       meta: {
         label: "Leads",
@@ -329,42 +244,38 @@ export const appRoutes = defineAppRoutes([
         name: "crm_leads.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_leads" action="create" fallback={denied}>
-            <LeadCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/leads/route-components").then(
+            ({ LeadCreateRoute }) => ({ default: LeadCreateRoute })
+          ),
       },
       {
         name: "crm_leads.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_leads" action="edit" fallback={denied}>
-            <LeadEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/leads/route-components").then(
+            ({ LeadEditRoute }) => ({ default: LeadEditRoute })
+          ),
       },
       {
         name: "crm_leads.show",
         path: "show/:id",
         resourceAction: "show",
-        element: (
-          <CanAccess resource="crm_leads" action="show" fallback={denied}>
-            <LeadShow />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/leads/route-components").then(
+            ({ LeadShowRoute }) => ({ default: LeadShowRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_deals",
     path: crmRoutes.pipeline,
-    element: (
-      <CanAccess resource="crm_deals" action="list" fallback={denied}>
-        <PipelinePage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/deals/route-components").then(
+        ({ PipelineRoute }) => ({ default: PipelineRoute })
+      ),
     resource: {
       meta: {
         label: "Pipeline",
@@ -385,31 +296,28 @@ export const appRoutes = defineAppRoutes([
         name: "crm_deals.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_deals" action="create" fallback={denied}>
-            <DealCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/deals/route-components").then(
+            ({ DealCreateRoute }) => ({ default: DealCreateRoute })
+          ),
       },
       {
         name: "crm_deals.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_deals" action="edit" fallback={denied}>
-            <DealEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/deals/route-components").then(
+            ({ DealEditRoute }) => ({ default: DealEditRoute })
+          ),
       },
       {
         name: "crm_deals.show",
         path: "show/:id",
         resourceAction: "show",
-        element: (
-          <CanAccess resource="crm_deals" action="show" fallback={denied}>
-            <DealShow />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/deals/route-components").then(
+            ({ DealShowRoute }) => ({ default: DealShowRoute })
+          ),
         children: dealContextChildren("crm_deals.show", "id"),
       },
     ],
@@ -417,11 +325,10 @@ export const appRoutes = defineAppRoutes([
   {
     name: "crm_quotes",
     path: crmRoutes.quotes,
-    element: (
-      <CanAccess resource="crm_quotes" action="list" fallback={denied}>
-        <QuotesPage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/quotes/route-components").then(
+        ({ QuotesRoute }) => ({ default: QuotesRoute })
+      ),
     resource: {
       meta: {
         label: "Quotes",
@@ -442,38 +349,38 @@ export const appRoutes = defineAppRoutes([
         name: "crm_quotes.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_quotes" action="create" fallback={denied}>
-            <QuoteCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/quotes/route-components").then(
+            ({ QuoteCreateRoute }) => ({ default: QuoteCreateRoute })
+          ),
       },
       {
         name: "crm_quotes.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_quotes" action="edit" fallback={denied}>
-            <QuoteEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/quotes/route-components").then(
+            ({ QuoteEditRoute }) => ({ default: QuoteEditRoute })
+          ),
       },
       {
         name: "crm_quotes.show",
         path: "show/:id",
         resourceAction: "show",
-        element: (
-          <CanAccess resource="crm_quotes" action="show" fallback={denied}>
-            <QuoteShow />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/quotes/route-components").then(
+            ({ QuoteShowRoute }) => ({ default: QuoteShowRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_customers",
     path: crmRoutes.customers,
-    element: <CustomersLayout />,
+    lazy: () =>
+      import("@/pages/crm/customers/list").then(({ CustomersLayout }) => ({
+        default: CustomersLayout,
+      })),
     resource: {
       meta: {
         label: "Customers",
@@ -495,31 +402,28 @@ export const appRoutes = defineAppRoutes([
         name: "crm_customers.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_customers" action="create" fallback={denied}>
-            <CustomerCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/customers/route-components").then(
+            ({ CustomerCreateRoute }) => ({ default: CustomerCreateRoute })
+          ),
       },
       {
         name: "crm_customers.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_customers" action="edit" fallback={denied}>
-            <CustomerEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/customers/route-components").then(
+            ({ CustomerEditRoute }) => ({ default: CustomerEditRoute })
+          ),
       },
       {
         name: "crm_customers.show",
         path: "show/:id",
         resourceAction: "show",
-        element: (
-          <CanAccess resource="crm_customers" action="show" fallback={denied}>
-            <CustomerShow />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/customers/route-components").then(
+            ({ CustomerShowRoute }) => ({ default: CustomerShowRoute })
+          ),
         children: customerContextChildren("crm_customers.show"),
       },
     ],
@@ -527,11 +431,10 @@ export const appRoutes = defineAppRoutes([
   {
     name: "crm_products",
     path: crmRoutes.products,
-    element: (
-      <CanAccess resource="crm_products" action="list" fallback={denied}>
-        <ProductsPage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/products/route-components").then(
+        ({ ProductsRoute }) => ({ default: ProductsRoute })
+      ),
     resource: {
       meta: {
         label: "Products",
@@ -552,28 +455,29 @@ export const appRoutes = defineAppRoutes([
         name: "crm_products.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_products" action="create" fallback={denied}>
-            <ProductCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/products/route-components").then(
+            ({ ProductCreateRoute }) => ({ default: ProductCreateRoute })
+          ),
       },
       {
         name: "crm_products.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_products" action="edit" fallback={denied}>
-            <ProductEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/products/route-components").then(
+            ({ ProductEditRoute }) => ({ default: ProductEditRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_activities",
     path: crmRoutes.activities,
-    element: <ActivitiesLayout />,
+    lazy: () =>
+      import("@/pages/crm/activities/list").then(({ ActivitiesLayout }) => ({
+        default: ActivitiesLayout,
+      })),
     resource: {
       meta: {
         label: "Activities",
@@ -594,28 +498,29 @@ export const appRoutes = defineAppRoutes([
         name: "crm_activities.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_activities" action="create" fallback={denied}>
-            <ActivityCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/activities/route-components").then(
+            ({ ActivityCreateRoute }) => ({ default: ActivityCreateRoute })
+          ),
       },
       {
         name: "crm_activities.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_activities" action="edit" fallback={denied}>
-            <ActivityEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/activities/route-components").then(
+            ({ ActivityEditRoute }) => ({ default: ActivityEditRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_follow_ups",
     path: crmRoutes.followUps,
-    element: <FollowUpsLayout />,
+    lazy: () =>
+      import("@/pages/crm/follow-ups/list").then(({ FollowUpsLayout }) => ({
+        default: FollowUpsLayout,
+      })),
     resource: {
       meta: {
         label: "Follow-ups",
@@ -636,32 +541,29 @@ export const appRoutes = defineAppRoutes([
         name: "crm_follow_ups.create",
         path: "create",
         resourceAction: "create",
-        element: (
-          <CanAccess resource="crm_follow_ups" action="create" fallback={denied}>
-            <FollowUpCreate />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/follow-ups/route-components").then(
+            ({ FollowUpCreateRoute }) => ({ default: FollowUpCreateRoute })
+          ),
       },
       {
         name: "crm_follow_ups.edit",
         path: "edit/:id",
         resourceAction: "edit",
-        element: (
-          <CanAccess resource="crm_follow_ups" action="edit" fallback={denied}>
-            <FollowUpEdit />
-          </CanAccess>
-        ),
+        lazy: () =>
+          import("@/pages/crm/follow-ups/route-components").then(
+            ({ FollowUpEditRoute }) => ({ default: FollowUpEditRoute })
+          ),
       },
     ],
   },
   {
     name: "crm_targets",
     path: crmRoutes.targets,
-    element: (
-      <CanAccess resource="crm_targets" action="list" fallback={denied}>
-        <TargetsPage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/targets/route-components").then(
+        ({ TargetsRoute }) => ({ default: TargetsRoute })
+      ),
     resource: {
       meta: {
         label: "Targets",
@@ -678,11 +580,10 @@ export const appRoutes = defineAppRoutes([
   {
     name: "crm_reports",
     path: crmRoutes.reports,
-    element: (
-      <CanAccess resource="crm_deals" action="list" fallback={denied}>
-        <ReportsPage />
-      </CanAccess>
-    ),
+    lazy: () =>
+      import("@/pages/crm/reports/route-components").then(
+        ({ ReportsRoute }) => ({ default: ReportsRoute })
+      ),
     resource: {
       meta: {
         label: "Reports",
