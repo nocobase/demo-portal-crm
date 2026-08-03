@@ -1,5 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
+import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ import {
   RouteDrawerFooter,
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
-import { CustomerPicker } from "../pickers";
+import { CustomerPicker, makeInitialOption, toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { ContactFormValues, ContactRecord } from "../types";
 
@@ -36,12 +37,11 @@ function ContactFormFields({
   record?: ContactRecord | null;
   lockCustomer?: boolean;
 }) {
-  const customerInitial = record?.customer?.company_name
-    ? {
-        value: String(record.customer.id),
-        label: record.customer.company_name,
-      }
-    : null;
+  const customerInitial = makeInitialOption(
+    record?.customer_id ?? record?.customer?.id,
+    record?.customer?.company_name,
+    translate("crm.common.customer", { ns: "starter" }, "Customer")
+  );
 
   return (
     <>
@@ -358,6 +358,21 @@ function ContactEditForm({
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Re-sync the relation id in case the API returns only the nested
+  // `customer.id`; guard against overwriting the user's own edit.
+  useEffect(() => {
+    if (!record || getFieldState("customer_id").isDirty) return;
+
+    setValue(
+      "customer_id",
+      toPickerValue(record.customer_id ?? record.customer?.id),
+      { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+    );
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form
@@ -368,7 +383,7 @@ function ContactEditForm({
           <ContactFormFields
             form={form}
             translate={translate}
-            record={query?.data?.data}
+            record={record}
           />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">

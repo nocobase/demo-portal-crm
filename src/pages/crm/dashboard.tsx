@@ -8,13 +8,6 @@ import {
   BuildStoryBanner,
   type BuildStory,
 } from "@/components/build-story/build-story-banner";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { nocobaseClient } from "@nocobase/portal-sdk/client";
 import {
@@ -29,7 +22,7 @@ import {
   labelFor,
 } from "./constants";
 import { useReportAnalytics } from "./analytics";
-import { ChartCard } from "./overview-cards";
+import { ChartCard, MetricCard } from "./overview-cards";
 import { useOpenContextualChild } from "./route-surfaces";
 import { EnumBadge, useLocale } from "./shared";
 import type { CustomerRecord, DealRecord, FollowUpRecord } from "./types";
@@ -301,47 +294,47 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard
+        <MetricCard
           loading={summary.isLoading}
           label={translate("crm.dashboard.openPipeline", { ns: "starter" }, "Open pipeline")}
           value={formatCurrency(openTotal, locale)}
-          sub={translate(
+          detail={translate(
             "crm.dashboard.openPipeline.sub",
             { ns: "starter", count: openCount },
             `${openCount} active deals`
           )}
         />
-        <KpiCard
+        <MetricCard
           loading={analytics.isLoading}
           label={translate("crm.dashboard.weightedForecast", { ns: "starter" }, "Weighted forecast")}
           value={formatCurrency(weightedForecast, locale)}
-          sub={translate("crm.dashboard.weightedForecast.sub", { ns: "starter" }, "Stage probability applied to every deal")}
+          detail={translate("crm.dashboard.weightedForecast.sub", { ns: "starter" }, "Stage probability applied to every deal")}
         />
-        <KpiCard
+        <MetricCard
           loading={summary.isLoading}
           label={translate("crm.dashboard.closingSoon", { ns: "starter" }, "Expected to close (30 days)")}
           value={formatCurrency(soonTotal, locale)}
-          sub={translate(
+          detail={translate(
             "crm.dashboard.closingSoon.sub",
             { ns: "starter", count: soonCount },
             `${soonCount} deals with dates set`
           )}
         />
-        <KpiCard
+        <MetricCard
           loading={summary.isLoading}
           label={translate("crm.dashboard.wonThisMonth", { ns: "starter" }, "Won this month")}
           value={formatCurrency(wonTotal, locale)}
-          sub={translate(
+          detail={translate(
             "crm.dashboard.wonThisMonth.sub",
             { ns: "starter", count: wonCount },
             `${wonCount} deals closed won`
           )}
         />
-        <KpiCard
+        <MetricCard
           loading={dormant.isLoading}
           label={translate("crm.dashboard.dormant", { ns: "starter" }, "Untouched 30+ days")}
           value={String(dormantTotal)}
-          sub={translate(
+          detail={translate(
             "crm.dashboard.dormant.sub",
             { ns: "starter" },
             "Active accounts with no activity"
@@ -350,44 +343,31 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {translate("crm.dashboard.byStage.title", { ns: "starter" }, "Pipeline by stage")}
-            </CardTitle>
-            <CardDescription>
-              {translate(
-                "crm.dashboard.byStage.description",
-                { ns: "starter" },
-                "Total deal value in each stage."
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {summary.isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : (
-              <ReactECharts option={chartOption} opts={{ renderer: "svg" }} style={{ height: 256 }} />
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard
+          title={translate("crm.dashboard.byStage.title", { ns: "starter" }, "Pipeline by stage")}
+          description={translate(
+            "crm.dashboard.byStage.description",
+            { ns: "starter" },
+            "Total deal value in each stage."
+          )}
+        >
+          {summary.isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <ReactECharts option={chartOption} opts={{ renderer: "svg" }} style={{ height: 256 }} />
+          )}
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {translate("crm.dashboard.closingList.title", { ns: "starter" }, "Likely to close")}
-            </CardTitle>
-            <CardDescription>
-              {translate(
-                "crm.dashboard.closingList.description",
-                { ns: "starter" },
-                "Open deals with an expected close in the next 30 days."
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {closingSoon.query.isLoading ? (
-              <LoadingState className="min-h-40" />
+        <ChartCard
+          title={translate("crm.dashboard.closingList.title", { ns: "starter" }, "Likely to close")}
+          description={translate(
+            "crm.dashboard.closingList.description",
+            { ns: "starter" },
+            "Open deals with an expected close in the next 30 days."
+          )}
+        >
+          {closingSoon.query.isLoading ? (
+            <LoadingState className="min-h-40" />
             ) : closingSoon.result.data.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {translate(
@@ -403,7 +383,7 @@ export function DashboardPage() {
                     type="button"
                     key={String(deal.id)}
                     onClick={() => openChild(`deals/edit/${deal.id}`)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left hover:bg-accent"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-accent"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
@@ -426,25 +406,18 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {translate("crm.dashboard.dormantList.title", { ns: "starter" }, "Accounts to touch")}
-            </CardTitle>
-            <CardDescription>
-              {translate(
-                "crm.dashboard.dormantList.description",
-                { ns: "starter" },
-                "Active accounts with no logged call, meeting or email in 30 days."
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ChartCard
+          title={translate("crm.dashboard.dormantList.title", { ns: "starter" }, "Accounts to touch")}
+          description={translate(
+            "crm.dashboard.dormantList.description",
+            { ns: "starter" },
+            "Active accounts with no logged call, meeting or email in 30 days."
+          )}
+        >
             {dormant.isLoading ? (
               <LoadingState className="min-h-40" />
             ) : (dormant.data?.dormant.length ?? 0) === 0 ? (
@@ -462,7 +435,7 @@ export function DashboardPage() {
                     type="button"
                     key={String(customer.id)}
                     onClick={() => openChild(`customers/show/${customer.id}`)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left hover:bg-accent"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-accent"
                   >
                     <span className="truncate text-sm font-medium">
                       {customer.company_name || "—"}
@@ -484,23 +457,16 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {translate("crm.dashboard.followUps.title", { ns: "starter" }, "Next follow-ups")}
-            </CardTitle>
-            <CardDescription>
-              {translate(
-                "crm.dashboard.followUps.description",
-                { ns: "starter" },
-                "The reminders due soonest."
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ChartCard
+          title={translate("crm.dashboard.followUps.title", { ns: "starter" }, "Next follow-ups")}
+          description={translate(
+            "crm.dashboard.followUps.description",
+            { ns: "starter" },
+            "The reminders due soonest."
+          )}
+        >
             {nextFollowUps.query.isLoading ? (
               <LoadingState className="min-h-40" />
             ) : nextFollowUps.result.data.length === 0 ? (
@@ -520,7 +486,7 @@ export function DashboardPage() {
                       type="button"
                       key={String(followUp.id)}
                       onClick={() => openChild(`follow-ups/edit/${followUp.id}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left hover:bg-accent"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-accent"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
@@ -551,8 +517,7 @@ export function DashboardPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -591,33 +556,5 @@ export function DashboardPage() {
       </div>
       <Outlet />
     </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  loading,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  loading: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        {loading ? (
-          <Skeleton className="mt-2 h-8 w-24" />
-        ) : (
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-            {value}
-          </p>
-        )}
-        <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-      </CardContent>
-    </Card>
   );
 }

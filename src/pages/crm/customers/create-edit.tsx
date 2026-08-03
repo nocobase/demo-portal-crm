@@ -1,5 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
+import { useEffect } from "react";
 import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -9,6 +10,7 @@ import {
   RouteDrawerFooter,
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
+import { toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { CustomerFormValues, CustomerRecord } from "../types";
 import { CustomerFormFields } from "./fields";
@@ -136,6 +138,21 @@ function CustomerEditForm({ id }: { id?: string }) {
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Re-sync the owner id when the API returns only the nested `owner.id`;
+  // guard against overwriting the user's own edit.
+  useEffect(() => {
+    if (!record || getFieldState("ownerId").isDirty) return;
+
+    setValue(
+      "ownerId",
+      toPickerValue(record.ownerId ?? record.owner?.id),
+      { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+    );
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form
@@ -146,7 +163,7 @@ function CustomerEditForm({ id }: { id?: string }) {
           <CustomerFormFields
             form={form}
             translate={translate}
-            record={query?.data?.data}
+            record={record}
           />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">

@@ -1,5 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
+import { useEffect } from "react";
 import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -9,6 +10,7 @@ import {
   RouteDrawerFooter,
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
+import { toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { ActivityFormValues, ActivityRecord } from "../types";
 import { ActivityFormFields } from "./fields";
@@ -153,6 +155,31 @@ function ActivityEditForm({
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Re-sync relation ids when the API returns only nested objects; skip any
+  // field the user has already touched.
+  useEffect(() => {
+    if (!record) return;
+
+    if (!getFieldState("customer_id").isDirty) {
+      setValue(
+        "customer_id",
+        toPickerValue(record.customer_id ?? record.customer?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+
+    if (!getFieldState("contact_id").isDirty) {
+      setValue(
+        "contact_id",
+        toPickerValue(record.contact_id ?? record.contact?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form
@@ -164,7 +191,7 @@ function ActivityEditForm({
             form={form}
             translate={translate}
             presetCustomerId={presetCustomerId}
-            record={query?.data?.data}
+            record={record}
           />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">

@@ -1,6 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { AiFillPanel, useAiFill, type AiFillField } from "@/components/ai-fill";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
 import { DEAL_STAGES } from "../constants";
+import { toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { DealFormValues, DealRecord } from "../types";
 import { DealFormFields } from "./fields";
@@ -240,6 +241,39 @@ function DealEditForm({
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Re-sync relation ids when the API returns only nested objects; skip any
+  // field the user has already touched.
+  useEffect(() => {
+    if (!record) return;
+
+    if (!getFieldState("customer_id").isDirty) {
+      setValue(
+        "customer_id",
+        toPickerValue(record.customer_id ?? record.customer?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+
+    if (!getFieldState("contact_id").isDirty) {
+      setValue(
+        "contact_id",
+        toPickerValue(record.contact_id ?? record.contact?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+
+    if (!getFieldState("ownerId").isDirty) {
+      setValue(
+        "ownerId",
+        toPickerValue(record.ownerId ?? record.owner?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form
@@ -251,7 +285,7 @@ function DealEditForm({
             form={form}
             translate={translate}
             presetCustomerId={presetCustomerId}
-            record={query?.data?.data}
+            record={record}
           />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">

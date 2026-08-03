@@ -16,9 +16,9 @@ export function MetricCard({
   loading?: boolean;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="relative pt-5">
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400" />
+    <Card className="relative">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400" />
+      <CardContent>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">{label}</p>

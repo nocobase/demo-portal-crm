@@ -1,6 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
 import { QUOTE_STATUSES, labelFor, toDateInputValue } from "../constants";
-import { CustomerPicker, DealPicker } from "../pickers";
+import { CustomerPicker, DealPicker, makeInitialOption, toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { QuoteRecord } from "../types";
 
@@ -72,14 +72,21 @@ function QuoteFormFields({
   const watchedCustomerId = useWatch({ control: form.control, name: "customer_id" });
   const customerInitial = useMemo(
     () =>
-      record?.customer?.company_name
-        ? { value: String(record.customer.id), label: record.customer.company_name }
-        : null,
-    [record]
+      makeInitialOption(
+        record?.customer_id ?? record?.customer?.id,
+        record?.customer?.company_name,
+        translate("crm.common.customer", { ns: "starter" }, "Customer")
+      ),
+    [record, translate]
   );
   const dealInitial = useMemo(
-    () => (record?.deal?.title ? { value: String(record.deal.id), label: record.deal.title } : null),
-    [record]
+    () =>
+      makeInitialOption(
+        record?.deal_id ?? record?.deal?.id,
+        record?.deal?.title,
+        translate("crm.common.deal", { ns: "starter" }, "Deal")
+      ),
+    [record, translate]
   );
 
   return (
@@ -303,11 +310,36 @@ function QuoteEditForm({ recordId, translate }: { recordId?: string; translate: 
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Re-sync relation ids when the API returns only nested objects; skip any
+  // field the user has already touched.
+  useEffect(() => {
+    if (!record) return;
+
+    if (!getFieldState("customer_id").isDirty) {
+      setValue(
+        "customer_id",
+        toPickerValue(record.customer_id ?? record.customer?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+
+    if (!getFieldState("deal_id").isDirty) {
+      setValue(
+        "deal_id",
+        toPickerValue(record.deal_id ?? record.deal?.id),
+        { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+      );
+    }
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values)))} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <QuoteFormFields form={form} translate={translate} record={query?.data?.data} />
+          <QuoteFormFields form={form} translate={translate} record={record} />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
           <Button type="button" variant="outline" onClick={() => close()}>

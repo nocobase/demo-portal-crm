@@ -60,8 +60,10 @@ export function TargetsPage() {
   return (
     <ListView resource="crm_targets">
       <div className="flex items-end gap-3 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-300">
+          <CalendarDays className="size-5" />
+        </div>
         <div className="space-y-2"><Label htmlFor="target-month">{translate("crm.targets.period", { ns: "starter" }, "Target month")}</Label><Input id="target-month" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></div>
-        <CalendarDays className="mb-2 size-5 text-blue-600" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label={translate("crm.targets.totalQuota", { ns: "starter" }, "Team quota")} value={formatCurrency(quotaTotal, locale)} icon={<DollarSign className="size-5" />} loading={query.isLoading} />

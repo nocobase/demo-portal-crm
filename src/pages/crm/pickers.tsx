@@ -24,6 +24,27 @@ export type RelationId = string | number | null | undefined;
 export const toPickerValue = (value: RelationId): string | null =>
   value === null || value === undefined || value === "" ? null : String(value);
 
+/**
+ * Defensive builder for a picker's `initialOption`. Decides whether to render an
+ * option by whether the relation *id* exists — not by whether the label is
+ * truthy — so a saved relation whose appended object is missing or whose display
+ * name is blank still selects instead of collapsing to the empty placeholder.
+ * When the label is absent it falls back to `${fallbackLabel} #<id>`.
+ */
+export const makeInitialOption = (
+  id: RelationId,
+  label: string | null | undefined,
+  fallbackLabel: string
+): PickerOption | null => {
+  const value = toPickerValue(id);
+  if (value === null) return null;
+
+  return {
+    value,
+    label: label?.trim() || `${fallbackLabel} #${value}`,
+  };
+};
+
 export function useCustomerOptions(): {
   options: PickerOption[];
   isLoading: boolean;

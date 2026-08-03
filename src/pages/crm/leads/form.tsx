@@ -1,6 +1,6 @@
 import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useParams } from "react-router";
 import { AiFillPanel, useAiFill, type AiFillField } from "@/components/ai-fill";
@@ -28,7 +28,7 @@ import {
   useRefineUnsavedChangesGuard,
 } from "@/extensions/nocobase-route-surfaces";
 import { LEAD_SOURCES, LEAD_STATUSES, labelFor } from "../constants";
-import { OwnerPicker } from "../pickers";
+import { OwnerPicker, makeInitialOption, toPickerValue } from "../pickers";
 import { useContextualCloseTo } from "../route-surfaces";
 import type { LeadRecord } from "../types";
 
@@ -70,9 +70,11 @@ function LeadFormFields({
   translate: Translate;
   record?: LeadRecord | null;
 }) {
-  const ownerInitial = record?.owner?.nickname
-    ? { value: String(record.owner.id), label: record.owner.nickname }
-    : null;
+  const ownerInitial = makeInitialOption(
+    record?.owner_id ?? record?.owner?.id,
+    record?.owner?.nickname ?? record?.owner?.email,
+    translate("crm.common.owner", { ns: "starter" }, "Owner")
+  );
 
   return (
     <>
@@ -413,11 +415,29 @@ function LeadEditForm({ recordId, translate }: { recordId?: string; translate: T
     },
   });
 
+  const record = query?.data?.data;
+  const { getFieldState, setValue } = form;
+
+  // Defensive re-sync: refine only fills fields whose exact registered path
+  // (`owner_id`) exists in the query response. If the API returns only the
+  // nested `owner.id`, `owner_id` stays undefined and the picker shows the
+  // placeholder even with a valid initialOption. Mirror the id back onto the
+  // registered field, but never clobber a value the user is actively editing.
+  useEffect(() => {
+    if (!record || getFieldState("owner_id").isDirty) return;
+
+    setValue(
+      "owner_id",
+      toPickerValue(record.owner_id ?? record.owner?.id ?? null),
+      { shouldDirty: false, shouldTouch: false, shouldValidate: false }
+    );
+  }, [record, getFieldState, setValue]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((values) => onFinish(toServerValues(values)))} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <LeadFormFields form={form} translate={translate} record={query?.data?.data} />
+          <LeadFormFields form={form} translate={translate} record={record} />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
           <Button type="button" variant="outline" onClick={() => close()}>
