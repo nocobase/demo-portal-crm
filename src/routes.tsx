@@ -20,6 +20,7 @@ import {
   defineAppRoutes,
   type AppRouteDefinition,
 } from "@nocobase/portal-sdk/routing";
+import { Navigate } from "react-router";
 import { crmRoutes } from "@/pages/crm/routes";
 
 export const registryRoutesEnabled = false;
@@ -191,6 +192,7 @@ export const appRoutes = defineAppRoutes([
   {
     name: navGroupOverview,
     path: "/nav/overview",
+    element: <Navigate to={crmRoutes.dashboard} replace />,
     resource: {
       meta: {
         label: "Overview",
@@ -206,6 +208,7 @@ export const appRoutes = defineAppRoutes([
   {
     name: navGroupCustomers,
     path: "/nav/customers",
+    element: <Navigate to={crmRoutes.customers} replace />,
     resource: {
       meta: {
         label: "Customers",
@@ -221,6 +224,7 @@ export const appRoutes = defineAppRoutes([
   {
     name: navGroupSales,
     path: "/nav/sales",
+    element: <Navigate to={crmRoutes.pipeline} replace />,
     resource: {
       meta: {
         label: "Sales",
@@ -236,6 +240,7 @@ export const appRoutes = defineAppRoutes([
   {
     name: navGroupProducts,
     path: "/nav/products",
+    element: <Navigate to={crmRoutes.products} replace />,
     resource: {
       meta: {
         label: "Products",
@@ -251,6 +256,7 @@ export const appRoutes = defineAppRoutes([
   {
     name: navGroupAnalytics,
     path: "/nav/analytics",
+    element: <Navigate to={crmRoutes.reports} replace />,
     resource: {
       meta: {
         label: "Analytics",
