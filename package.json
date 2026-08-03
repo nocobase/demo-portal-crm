@@ -8,7 +8,7 @@
     "defaultTemplateVersion": "3.0.4"
   },
   "devDependencies": {
-    "@nocobase/portal-sdk": "^2.0.2",
+    "@nocobase/portal-sdk": "^2.0.3",
     "date-fns": "^4.1.0",
     "echarts": "^5.5.0",
     "echarts-for-react": "3.0.2",
