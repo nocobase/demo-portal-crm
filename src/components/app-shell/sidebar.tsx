@@ -119,13 +119,16 @@ function SidebarItemGroup({ item, selectedKey }: MenuItemProps) {
   const { children } = item;
   const { open } = useShadcnSidebar();
   const displayName = useMenuItemLabel(item);
+  const groupIcon = item.meta?.icon ?? item.icon;
 
   return (
     <div className={cn("mt-2 border-t", "border-sidebar-border/70", "pt-4")}>
       <span
         className={cn(
           "ml-3",
-          "block",
+          "flex",
+          "items-center",
+          "gap-1.5",
           "text-xs",
           "font-semibold",
           "uppercase",
@@ -142,6 +145,7 @@ function SidebarItemGroup({ item, selectedKey }: MenuItemProps) {
           }
         )}
       >
+        {groupIcon && <span className="[&_svg]:size-3.5">{groupIcon}</span>}
         {displayName}
       </span>
       {children && children.length > 0 && (

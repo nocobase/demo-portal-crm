@@ -181,7 +181,10 @@ export function FollowUpShow({ idParam = "id" }: { idParam?: string }) {
                       className="flex items-center justify-between gap-3 rounded-lg border p-3"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{record.subject}</p>
+                        <RecordLink
+                          label={record.subject}
+                          onClick={() => openRecord.followUp(record.id)}
+                        />
                         <p className="text-xs text-muted-foreground">
                           {formatDate(record.due_date, locale)}
                         </p>

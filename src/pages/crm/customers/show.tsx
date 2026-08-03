@@ -28,6 +28,7 @@ import {
   formatDateTime,
   labelFor,
 } from "../constants";
+import { RecordLink, useOpenRecord } from "../record-links";
 import {
   useContextualCloseTo,
   useOpenContextualChild,
@@ -202,6 +203,19 @@ function Customer360({
   locale: string;
 }) {
   const translate = useTranslate();
+  const openChild = useOpenContextualChild();
+  const openRecord = useOpenRecord();
+  const openTimelineItem = (kind: string, recordId: string | number) => {
+    if (kind === "deal") {
+      openChild(`deals/show/${encodeURIComponent(String(recordId))}`);
+    } else if (kind === "activity") {
+      openRecord.activity(recordId);
+    } else if (kind === "quote") {
+      openRecord.quote(recordId);
+    } else if (kind === "followUp") {
+      openRecord.followUp(recordId);
+    }
+  };
   const activities = useList<ActivityRecord>({
     resource: "crm_activities",
     filters: [{ field: "customer_id", operator: "eq", value: customerId }],
@@ -250,10 +264,10 @@ function Customer360({
       ? translate("crm.customers.health.watch", { ns: "starter" }, "Needs attention")
       : translate("crm.customers.health.risk", { ns: "starter" }, "At risk");
   const timeline = useMemo(() => [
-    ...activities.result.data.map((record) => ({ id: `activity-${record.id}`, kind: "activity", date: record.date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(ACTIVITY_TYPES, record.type, translate), icon: <MessageSquare className="size-4" /> })),
-    ...deals.result.data.map((record) => ({ id: `deal-${record.id}`, kind: "deal", date: record.closed_date ?? record.updatedAt ?? record.createdAt, title: record.title ?? "—", detail: `${labelFor(DEAL_STAGES, record.stage, translate)} · ${formatCurrency(record.amount, locale)}`, icon: <HandCoins className="size-4" /> })),
-    ...quotes.result.data.map((record) => ({ id: `quote-${record.id}`, kind: "quote", date: record.issue_date ?? record.createdAt, title: record.quote_number ?? "—", detail: `${labelFor(QUOTE_STATUSES, record.status, translate)} · ${formatCurrency(record.total, locale)}`, icon: <FileText className="size-4" /> })),
-    ...followUps.result.data.map((record) => ({ id: `follow-${record.id}`, kind: "followUp", date: record.due_date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(FOLLOW_UP_STATUSES, record.status, translate), icon: <CalendarClock className="size-4" /> })),
+    ...activities.result.data.map((record) => ({ id: `activity-${record.id}`, recordId: record.id, kind: "activity", date: record.date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(ACTIVITY_TYPES, record.type, translate), icon: <MessageSquare className="size-4" /> })),
+    ...deals.result.data.map((record) => ({ id: `deal-${record.id}`, recordId: record.id, kind: "deal", date: record.closed_date ?? record.updatedAt ?? record.createdAt, title: record.title ?? "—", detail: `${labelFor(DEAL_STAGES, record.stage, translate)} · ${formatCurrency(record.amount, locale)}`, icon: <HandCoins className="size-4" /> })),
+    ...quotes.result.data.map((record) => ({ id: `quote-${record.id}`, recordId: record.id, kind: "quote", date: record.issue_date ?? record.createdAt, title: record.quote_number ?? "—", detail: `${labelFor(QUOTE_STATUSES, record.status, translate)} · ${formatCurrency(record.total, locale)}`, icon: <FileText className="size-4" /> })),
+    ...followUps.result.data.map((record) => ({ id: `follow-${record.id}`, recordId: record.id, kind: "followUp", date: record.due_date ?? record.createdAt, title: record.subject ?? "—", detail: labelFor(FOLLOW_UP_STATUSES, record.status, translate), icon: <CalendarClock className="size-4" /> })),
   ].filter((item) => item.date).sort((left, right) => String(right.date).localeCompare(String(left.date))).slice(0, 14), [activities.result.data, deals.result.data, followUps.result.data, locale, quotes.result.data, translate]);
 
   return (
@@ -278,7 +292,7 @@ function Customer360({
           {timeline.map((item) => (
             <div key={item.id} className="relative flex gap-3 rounded-lg px-1 py-2.5 hover:bg-accent/50">
               <div className="z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-card text-blue-600">{item.icon}</div>
-              <div className="min-w-0 flex-1"><div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between"><p className="truncate text-sm font-medium">{item.title}</p><time className="shrink-0 text-xs text-muted-foreground">{formatDateTime(item.date, locale)}</time></div><p className="mt-0.5 text-xs text-muted-foreground">{translate(`crm.customers.timeline.${item.kind}`, { ns: "starter" }, item.kind)} · {item.detail}</p></div>
+              <div className="min-w-0 flex-1"><div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between"><RecordLink label={item.title} onClick={() => openTimelineItem(item.kind, item.recordId)} /><time className="shrink-0 text-xs text-muted-foreground">{formatDateTime(item.date, locale)}</time></div><p className="mt-0.5 text-xs text-muted-foreground">{translate(`crm.customers.timeline.${item.kind}`, { ns: "starter" }, item.kind)} · {item.detail}</p></div>
             </div>
           ))}
         </div>
@@ -434,6 +448,7 @@ function DealsSection({
   locale: string;
 }) {
   const translate = useTranslate();
+  const openChild = useOpenContextualChild();
   const { result } = useList<DealRecord>({
     resource: "crm_deals",
     pagination: { mode: "server", currentPage: 1, pageSize: 50 },
@@ -470,7 +485,14 @@ function DealsSection({
         ) : (
           result.data.map((deal) => (
             <tr key={String(deal.id)}>
-              <td className="px-3 py-2 font-medium">{deal.title || "—"}</td>
+              <td className="px-3 py-2 font-medium">
+                <RecordLink
+                  label={deal.title}
+                  onClick={() =>
+                    openChild(`deals/show/${encodeURIComponent(String(deal.id))}`)
+                  }
+                />
+              </td>
               <td className="px-3 py-2">
                 <EnumBadge
                   value={deal.stage ?? "inquiry"}
@@ -519,6 +541,7 @@ function ActivitiesSection({
   locale: string;
 }) {
   const translate = useTranslate();
+  const openRecord = useOpenRecord();
   const { result } = useList<ActivityRecord>({
     resource: "crm_activities",
     pagination: { mode: "server", currentPage: 1, pageSize: 50 },
@@ -568,7 +591,12 @@ function ActivitiesSection({
                   label={labelFor(ACTIVITY_TYPES, activity.type ?? "call", translate)}
                 />
               </td>
-              <td className="px-3 py-2 font-medium">{activity.subject || "—"}</td>
+              <td className="px-3 py-2 font-medium">
+                <RecordLink
+                  label={activity.subject}
+                  onClick={() => openRecord.activity(activity.id)}
+                />
+              </td>
               <td className="px-3 py-2">{activity.contact?.name || "—"}</td>
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1">
@@ -602,6 +630,7 @@ function FollowUpsSection({
   locale: string;
 }) {
   const translate = useTranslate();
+  const openRecord = useOpenRecord();
   const { mutate: updateFollowUp } = useUpdate<FollowUpRecord>();
   const { result } = useList<FollowUpRecord>({
     resource: "crm_follow_ups",
@@ -656,7 +685,12 @@ function FollowUpsSection({
                 >
                   {formatDate(followUp.due_date, locale)}
                 </td>
-                <td className="px-3 py-2 font-medium">{followUp.subject || "—"}</td>
+                <td className="px-3 py-2 font-medium">
+                  <RecordLink
+                    label={followUp.subject}
+                    onClick={() => openRecord.followUp(followUp.id)}
+                  />
+                </td>
                 <td className="px-3 py-2">
                   <EnumBadge
                     value={followUp.status ?? "pending"}

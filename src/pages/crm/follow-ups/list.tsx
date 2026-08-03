@@ -6,10 +6,6 @@ import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
-import {
-  DataTableFilterCombobox,
-  DataTableFilterDropdownText,
-} from "@/components/data-table/data-table-filter";
 import { DataTableSorter } from "@/components/data-table/data-table-sorter";
 import { DeleteButton } from "@/components/resources/buttons/delete";
 import { EditButton } from "@/components/resources/buttons/edit";
@@ -22,9 +18,11 @@ import {
   ListFilterSelect,
   ListSearchInput,
   ListToolbar,
+  ListToolbarContent,
   dateRangeFilter,
   searchFilter,
   useDebouncedValue,
+  useResetPageOnFilterChange,
 } from "../list-controls";
 import { useCustomerOptions, useOwnerOptions } from "../pickers";
 import { EnumBadge, useLocale } from "../shared";
@@ -49,21 +47,29 @@ function FollowUpList() {
   const { options: ownerOptions } = useOwnerOptions();
   const { mutate: updateFollowUp } = useUpdate<FollowUpRecord>();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [customer, setCustomer] = useState("all");
   const [owner, setOwner] = useState("all");
   const [dueFrom, setDueFrom] = useState("");
   const [dueTo, setDueTo] = useState("");
   const debouncedSearch = useDebouncedValue(search);
 
-  // Permanent filters sit alongside the per-column filters the header exposes.
+  // The top toolbar is the single filter entry point; column headers only sort.
   const permanentFilters = useMemo(
     () => [
       ...searchFilter(["subject", "notes"], debouncedSearch),
+      ...(status === "all"
+        ? []
+        : [{ field: "status", operator: "eq" as const, value: status }]),
+      ...(customer === "all"
+        ? []
+        : [{ field: "customer_id", operator: "eq" as const, value: customer }]),
       ...(owner === "all"
         ? []
         : [{ field: "ownerId", operator: "eq" as const, value: owner }]),
       ...dateRangeFilter("due_date", dueFrom, dueTo),
     ],
-    [debouncedSearch, dueFrom, dueTo, owner]
+    [debouncedSearch, status, customer, owner, dueFrom, dueTo]
   );
 
   const statusOptions = useMemo(
@@ -111,57 +117,19 @@ function FollowUpList() {
       }),
       columnHelper.accessor("subject", {
         id: "subject",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.followUps.fields.subject", { ns: "starter" }, "Subject")}
-            </span>
-            <DataTableFilterDropdownText
-              column={column}
-              table={table}
-              defaultOperator="contains"
-              operators={["contains", "eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.followUps.fields.subject", { ns: "starter" }, "Subject"),
         enableSorting: false,
         cell: ({ getValue }) => getValue() || "—",
       }),
       columnHelper.accessor((record) => record.customer?.company_name, {
         id: "customer.id",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.followUps.fields.customer", { ns: "starter" }, "Customer")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={customerOptions}
-              defaultOperator="eq"
-              operators={["eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.followUps.fields.customer", { ns: "starter" }, "Customer"),
         enableSorting: false,
         cell: ({ row }) => row.original.customer?.company_name || "—",
       }),
       columnHelper.accessor("status", {
         id: "status",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.followUps.fields.status", { ns: "starter" }, "Status")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={statusOptions}
-              defaultOperator="eq"
-              operators={["eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.followUps.fields.status", { ns: "starter" }, "Status"),
         enableSorting: false,
         cell: ({ getValue }) => {
           const value = getValue() ?? "pending";
@@ -218,7 +186,7 @@ function FollowUpList() {
         ),
       }),
     ];
-  }, [customerOptions, locale, openChild, statusOptions, translate, updateFollowUp]);
+  }, [locale, openChild, translate, updateFollowUp]);
 
   const table = useTable<FollowUpRecord>({
     columns,
@@ -232,28 +200,47 @@ function FollowUpList() {
     },
   });
 
+  useResetPageOnFilterChange(
+    `${debouncedSearch}|${status}|${customer}|${owner}|${dueFrom}|${dueTo}`,
+    table.refineCore.setCurrentPage
+  );
+
   return (
     <ListView resource="crm_follow_ups">
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.followUps.search", { ns: "starter" }, "Search subject or notes")}
-          />
-          <ListFilterSelect
-            value={owner}
-            onChange={setOwner}
-            options={ownerOptions}
-            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
-          />
-          <ListDateRange
-            from={dueFrom}
-            to={dueTo}
-            onFromChange={setDueFrom}
-            onToChange={setDueTo}
-            label={translate("crm.followUps.fields.dueDate", { ns: "starter" }, "Due")}
-          />
+          <ListToolbarContent>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.followUps.search", { ns: "starter" }, "Search subject or notes")}
+            />
+            <ListFilterSelect
+              value={status}
+              onChange={setStatus}
+              options={statusOptions}
+              allLabel={translate("crm.followUps.allStatuses", { ns: "starter" }, "All statuses")}
+            />
+            <ListFilterSelect
+              value={customer}
+              onChange={setCustomer}
+              options={customerOptions}
+              allLabel={translate("crm.common.allCustomers", { ns: "starter" }, "All customers")}
+            />
+            <ListFilterSelect
+              value={owner}
+              onChange={setOwner}
+              options={ownerOptions}
+              allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+            />
+            <ListDateRange
+              from={dueFrom}
+              to={dueTo}
+              onFromChange={setDueFrom}
+              onToChange={setDueTo}
+              label={translate("crm.followUps.fields.dueDate", { ns: "starter" }, "Due")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
       </div>
       <DataTable

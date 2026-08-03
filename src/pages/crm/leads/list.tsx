@@ -35,10 +35,13 @@ import {
 } from "../ai-assistant";
 import { LEAD_SOURCES, LEAD_STATUSES, formatDate, labelFor } from "../constants";
 import {
+  ListDateRange,
   ListFilterSelect,
   ListPagination,
   ListSearchInput,
   ListToolbar,
+  ListToolbarContent,
+  dateTimeRangeFilter,
   searchFilter,
   useDebouncedValue,
   useListPagination,
@@ -57,6 +60,8 @@ export function LeadsPage() {
   const [status, setStatus] = useState("all");
   const [source, setSource] = useState("all");
   const [owner, setOwner] = useState("all");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const { currentPage, pageSize, setCurrentPage, setPageSize } =
     useListPagination();
@@ -74,11 +79,12 @@ export function LeadsPage() {
       ...(owner === "all"
         ? []
         : [{ field: "owner_id", operator: "eq" as const, value: owner }]),
+      ...dateTimeRangeFilter("createdAt", createdFrom, createdTo),
     ],
-    [debouncedSearch, owner, source, status]
+    [debouncedSearch, owner, source, status, createdFrom, createdTo]
   );
   useResetPageOnFilterChange(
-    `${debouncedSearch}|${status}|${source}|${owner}`,
+    `${debouncedSearch}|${status}|${source}|${owner}|${createdFrom}|${createdTo}`,
     setCurrentPage
   );
 
@@ -136,7 +142,7 @@ export function LeadsPage() {
       kind="record-list"
       getContext={() => ({
         resource: "crm_leads",
-        filters: { search, status, source, owner },
+        filters: { search, status, source, owner, createdFrom, createdTo },
         total: result.total,
         rows: visible.map((lead) => ({
           id: lead.id,
@@ -161,35 +167,45 @@ export function LeadsPage() {
 
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.leads.search", { ns: "starter" }, "Search name, company or email")}
-          />
-          <ListFilterSelect
-            value={status}
-            onChange={setStatus}
-            options={statusOptions}
-            allLabel={translate("crm.leads.allStatuses", { ns: "starter" }, "All statuses")}
-          />
-          <ListFilterSelect
-            value={source}
-            onChange={setSource}
-            options={sourceOptions}
-            allLabel={translate("crm.leads.allSources", { ns: "starter" }, "All sources")}
-          />
-          <ListFilterSelect
-            value={owner}
-            onChange={setOwner}
-            options={ownerOptions}
-            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
-          />
-          <div className="lg:ml-auto">
-            <CrmAIShortcut
-              tasks={aiTasks}
-              label={translate("crm.ai.askAssistant", { ns: "starter" }, "Ask the CRM assistant")}
+          <ListToolbarContent
+            actions={
+              <CrmAIShortcut
+                tasks={aiTasks}
+                label={translate("crm.ai.askAssistant", { ns: "starter" }, "Ask the CRM assistant")}
+              />
+            }
+          >
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.leads.search", { ns: "starter" }, "Search name, company or email")}
             />
-          </div>
+            <ListFilterSelect
+              value={status}
+              onChange={setStatus}
+              options={statusOptions}
+              allLabel={translate("crm.leads.allStatuses", { ns: "starter" }, "All statuses")}
+            />
+            <ListFilterSelect
+              value={source}
+              onChange={setSource}
+              options={sourceOptions}
+              allLabel={translate("crm.leads.allSources", { ns: "starter" }, "All sources")}
+            />
+            <ListFilterSelect
+              value={owner}
+              onChange={setOwner}
+              options={ownerOptions}
+              allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+            />
+            <ListDateRange
+              from={createdFrom}
+              to={createdTo}
+              onFromChange={setCreatedFrom}
+              onToChange={setCreatedTo}
+              label={translate("crm.leads.fields.createdAt", { ns: "starter" }, "Created")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
         {query.isLoading ? (
           <LoadingState className="min-h-96" />

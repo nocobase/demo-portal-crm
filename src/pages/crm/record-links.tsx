@@ -15,6 +15,10 @@ export function useOpenRecord() {
     deal: (id: string | number) => navigate(`${crmRoutes.pipeline}/show/${id}`),
     quote: (id: string | number) => navigate(`${crmRoutes.quotes}/show/${id}`),
     lead: (id: string | number) => navigate(`${crmRoutes.leads}/show/${id}`),
+    activity: (id: string | number) =>
+      navigate(`${crmRoutes.activities}/show/${id}`),
+    followUp: (id: string | number) =>
+      navigate(`${crmRoutes.followUps}/show/${id}`),
   };
 }
 

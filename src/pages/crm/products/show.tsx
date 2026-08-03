@@ -20,7 +20,7 @@ import {
   formatCurrency,
   labelFor,
 } from "../constants";
-import { useOpenRecord } from "../record-links";
+import { RecordLink, useOpenRecord } from "../record-links";
 import { crmRoutes } from "../routes";
 import { useContextualCloseTo, useOpenContextualChild } from "../route-surfaces";
 import { DetailItems, DrawerSection, EnumBadge, useLocale } from "../shared";
@@ -174,18 +174,23 @@ export function ProductShow({ idParam = "id" }: { idParam?: string }) {
                     </TableHeader>
                     <TableBody>
                       {lineItems.map((item) => (
-                        <TableRow
-                          key={String(item.id)}
-                          className={item.quote?.id ? "cursor-pointer" : undefined}
-                          onClick={() =>
-                            item.quote?.id && openRecord.quote(item.quote.id)
-                          }
-                        >
+                        <TableRow key={String(item.id)}>
                           <TableCell className="font-mono text-sm font-semibold">
-                            {item.quote?.quote_number ?? "—"}
+                            <RecordLink
+                              label={item.quote?.quote_number}
+                              onClick={() =>
+                                item.quote?.id && openRecord.quote(item.quote.id)
+                              }
+                            />
                           </TableCell>
                           <TableCell>
-                            {item.quote?.customer?.company_name ?? "—"}
+                            <RecordLink
+                              label={item.quote?.customer?.company_name}
+                              onClick={() =>
+                                item.quote?.customer_id &&
+                                openRecord.customer(item.quote.customer_id)
+                              }
+                            />
                           </TableCell>
                           <TableCell>
                             <EnumBadge

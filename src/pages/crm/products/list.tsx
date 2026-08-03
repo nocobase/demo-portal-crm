@@ -14,6 +14,7 @@ import {
   ListPagination,
   ListSearchInput,
   ListToolbar,
+  ListToolbarContent,
   searchFilter,
   useDebouncedValue,
   useListPagination,
@@ -106,23 +107,25 @@ export function ProductsPage() {
       </div>
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.products.search", { ns: "starter" }, "Search product or SKU")}
-          />
-          <ListFilterSelect
-            value={category}
-            onChange={setCategory}
-            options={categoryOptions}
-            allLabel={translate("crm.products.allCategories", { ns: "starter" }, "All categories")}
-          />
-          <ListFilterSelect
-            value={availability}
-            onChange={setAvailability}
-            options={availabilityOptions}
-            allLabel={translate("crm.products.allAvailability", { ns: "starter" }, "Any availability")}
-          />
+          <ListToolbarContent>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.products.search", { ns: "starter" }, "Search product or SKU")}
+            />
+            <ListFilterSelect
+              value={availability}
+              onChange={setAvailability}
+              options={availabilityOptions}
+              allLabel={translate("crm.products.allAvailability", { ns: "starter" }, "Any availability")}
+            />
+            <ListFilterSelect
+              value={category}
+              onChange={setCategory}
+              options={categoryOptions}
+              allLabel={translate("crm.products.allCategories", { ns: "starter" }, "All categories")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
         {query.isLoading ? <LoadingState className="min-h-96" /> : (
           <>

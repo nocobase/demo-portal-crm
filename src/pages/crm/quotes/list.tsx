@@ -20,6 +20,7 @@ import {
   ListSearchInput,
   ListDateRange,
   ListToolbar,
+  ListToolbarContent,
   dateRangeFilter,
   searchFilter,
   useDebouncedValue,
@@ -106,30 +107,32 @@ export function QuotesPage() {
       </div>
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.quotes.search", { ns: "starter" }, "Search quote number")}
-          />
-          <ListFilterSelect
-            value={status}
-            onChange={setStatus}
-            options={statusOptions}
-            allLabel={translate("crm.quotes.allStatuses", { ns: "starter" }, "All quotes")}
-          />
-          <ListFilterSelect
-            value={customer}
-            onChange={setCustomer}
-            options={customerOptions}
-            allLabel={translate("crm.common.allCustomers", { ns: "starter" }, "All customers")}
-          />
-          <ListDateRange
-            from={issuedFrom}
-            to={issuedTo}
-            onFromChange={setIssuedFrom}
-            onToChange={setIssuedTo}
-            label={translate("crm.quotes.fields.issueDate", { ns: "starter" }, "Issue date")}
-          />
+          <ListToolbarContent>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.quotes.search", { ns: "starter" }, "Search quote number")}
+            />
+            <ListFilterSelect
+              value={status}
+              onChange={setStatus}
+              options={statusOptions}
+              allLabel={translate("crm.quotes.allStatuses", { ns: "starter" }, "All quotes")}
+            />
+            <ListFilterSelect
+              value={customer}
+              onChange={setCustomer}
+              options={customerOptions}
+              allLabel={translate("crm.common.allCustomers", { ns: "starter" }, "All customers")}
+            />
+            <ListDateRange
+              from={issuedFrom}
+              to={issuedTo}
+              onFromChange={setIssuedFrom}
+              onToChange={setIssuedTo}
+              label={translate("crm.quotes.fields.issueDate", { ns: "starter" }, "Issue date")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
         {query.isLoading ? <LoadingState className="min-h-96" /> : (
           <>

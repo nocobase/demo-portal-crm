@@ -145,7 +145,10 @@ export function ActivityShow({ idParam = "id" }: { idParam?: string }) {
                       className="flex items-center justify-between gap-3 rounded-lg border p-3"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{record.subject}</p>
+                        <RecordLink
+                          label={record.subject}
+                          onClick={() => openRecord.activity(record.id)}
+                        />
                         <p className="text-xs text-muted-foreground">
                           {formatDateTime(record.date, locale)}
                         </p>

@@ -83,6 +83,33 @@ export function dateRangeFilter(
   return filters;
 }
 
+/**
+ * Inclusive `[from, to]` filter for a datetime column. Unlike
+ * `dateRangeFilter`, the `<input type="date">` day is expanded to the full
+ * local-day boundary (00:00:00.000 → 23:59:59.999) before being serialized to
+ * ISO, so a datetime field is matched across the whole day in the browser's
+ * timezone instead of just at midnight UTC.
+ */
+export function dateTimeRangeFilter(
+  field: string,
+  from: string,
+  to: string
+): CrudFilter[] {
+  const startOfDay = (day: string) => {
+    const [year, month, date] = day.split("-").map(Number);
+    return new Date(year, month - 1, date, 0, 0, 0, 0).toISOString();
+  };
+  const endOfDay = (day: string) => {
+    const [year, month, date] = day.split("-").map(Number);
+    return new Date(year, month - 1, date, 23, 59, 59, 999).toISOString();
+  };
+  return dateRangeFilter(
+    field,
+    from ? startOfDay(from) : "",
+    to ? endOfDay(to) : ""
+  );
+}
+
 export function ListSearchInput({
   value,
   onChange,
@@ -145,6 +172,29 @@ export function ListToolbar({ children }: { children: ReactNode }) {
     <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:flex-wrap lg:items-center">
       {children}
     </div>
+  );
+}
+
+export type ListToolbarContentProps = {
+  children: ReactNode;
+  actions?: ReactNode;
+};
+
+/**
+ * Standard toolbar body: a left-aligned filter group and an optional
+ * right-aligned actions slot. The left group wraps its filters; the actions
+ * slot (currently only the Leads AI shortcut) is pushed to the right on wide
+ * screens. This is not a home for the "New" button — that is rendered by the
+ * ListView page header from the resource's create route.
+ */
+export function ListToolbarContent({ children, actions }: ListToolbarContentProps) {
+  return (
+    <>
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        {children}
+      </div>
+      {actions ? <div className="shrink-0 lg:ml-auto">{actions}</div> : null}
+    </>
   );
 }
 

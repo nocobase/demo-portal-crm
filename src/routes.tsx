@@ -1,13 +1,18 @@
 import {
   Activity,
   BarChart3,
+  Boxes,
   Building2,
   CalendarClock,
   FileText,
   LayoutDashboard,
+  LayoutGrid,
+  LineChart,
   Package,
   Target,
+  TrendingUp,
   UserPlus,
+  Users,
   Workflow,
 } from "lucide-react";
 
@@ -171,7 +176,93 @@ const customerContextChildren = (
   },
 ];
 
+// Sidebar section headers. These carry no page of their own (`resource.meta.group`
+// tells the sidebar to render a static, non-clickable heading) and only exist to
+// nest the real resources below under `meta.parent`. The placeholder `path` is
+// required by `AppRouteDefinition` whenever `resource` is set, but is otherwise
+// unreachable and unlinked from the UI.
+const navGroupOverview = "crm_nav_overview";
+const navGroupCustomers = "crm_nav_customers";
+const navGroupSales = "crm_nav_sales";
+const navGroupProducts = "crm_nav_products";
+const navGroupAnalytics = "crm_nav_analytics";
+
 export const appRoutes = defineAppRoutes([
+  {
+    name: navGroupOverview,
+    path: "/nav/overview",
+    resource: {
+      meta: {
+        label: "Overview",
+        i18nKey: "crm.groups.overview",
+        i18nOptions: { ns: "starter" },
+        priority: 0,
+        icon: <LayoutGrid />,
+        group: true,
+        acl: false,
+      },
+    },
+  },
+  {
+    name: navGroupCustomers,
+    path: "/nav/customers",
+    resource: {
+      meta: {
+        label: "Customers",
+        i18nKey: "crm.groups.customers",
+        i18nOptions: { ns: "starter" },
+        priority: 10,
+        icon: <Users />,
+        group: true,
+        acl: false,
+      },
+    },
+  },
+  {
+    name: navGroupSales,
+    path: "/nav/sales",
+    resource: {
+      meta: {
+        label: "Sales",
+        i18nKey: "crm.groups.sales",
+        i18nOptions: { ns: "starter" },
+        priority: 20,
+        icon: <TrendingUp />,
+        group: true,
+        acl: false,
+      },
+    },
+  },
+  {
+    name: navGroupProducts,
+    path: "/nav/products",
+    resource: {
+      meta: {
+        label: "Products",
+        i18nKey: "crm.groups.products",
+        i18nOptions: { ns: "starter" },
+        priority: 30,
+        icon: <Boxes />,
+        group: true,
+        acl: false,
+      },
+    },
+  },
+  {
+    name: navGroupAnalytics,
+    path: "/nav/analytics",
+    resource: {
+      meta: {
+        label: "Analytics",
+        i18nKey: "crm.groups.analytics",
+        i18nOptions: { ns: "starter" },
+        priority: 40,
+        icon: <LineChart />,
+        group: true,
+        acl: false,
+      },
+    },
+  },
   {
     name: "dashboard",
     path: crmRoutes.dashboard,
@@ -184,8 +275,9 @@ export const appRoutes = defineAppRoutes([
         label: "Dashboard",
         i18nKey: "crm.resources.dashboard",
         i18nOptions: { ns: "starter" },
-        priority: 0,
+        priority: 1,
         icon: <LayoutDashboard />,
+        parent: navGroupOverview,
         acl: false,
       },
     },
@@ -232,8 +324,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.lead",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.leads.description",
-        priority: 5,
+        priority: 22,
         icon: <UserPlus />,
+        parent: navGroupSales,
         description: "Score, qualify and convert inbound demand.",
         canCreate: true,
         acl: { type: "collection" },
@@ -284,8 +377,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.deal",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.pipeline.description",
-        priority: 10,
+        priority: 21,
         icon: <Workflow />,
+        parent: navGroupSales,
         description: "Every deal from inquiry to quote to won / lost.",
         canCreate: true,
         acl: { type: "collection" },
@@ -337,8 +431,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.quote",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.quotes.description",
-        priority: 15,
+        priority: 23,
         icon: <FileText />,
+        parent: navGroupSales,
         description: "Commercial proposals with priced line items.",
         canCreate: true,
         acl: { type: "collection" },
@@ -389,8 +484,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.customer",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.customers.description",
-        priority: 20,
+        priority: 11,
         icon: <Building2 />,
+        parent: navGroupCustomers,
         description: "Client companies and the people you deal with.",
         canCreate: true,
         canDelete: true,
@@ -443,8 +539,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.product",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.products.description",
-        priority: 25,
+        priority: 31,
         icon: <Package />,
+        parent: navGroupProducts,
         description: "Active SKUs and list prices used in quotes.",
         canCreate: true,
         acl: { type: "collection" },
@@ -495,8 +592,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.activity",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.activities.description",
-        priority: 30,
+        priority: 25,
         icon: <Activity />,
+        parent: navGroupSales,
         description: "Calls, meetings and emails logged against customers.",
         canCreate: true,
         acl: { type: "collection" },
@@ -547,8 +645,9 @@ export const appRoutes = defineAppRoutes([
         i18nSingularKey: "crm.resources.followUp",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.followUps.description",
-        priority: 40,
+        priority: 24,
         icon: <CalendarClock />,
+        parent: navGroupSales,
         description: "Reminders so nothing slips.",
         canCreate: true,
         acl: { type: "collection" },
@@ -597,8 +696,9 @@ export const appRoutes = defineAppRoutes([
         i18nKey: "crm.resources.targets",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.targets.description",
-        priority: 50,
+        priority: 42,
         icon: <Target />,
+        parent: navGroupAnalytics,
         description: "Monthly quotas, attainment and owner rankings.",
         acl: { type: "collection" },
       },
@@ -617,8 +717,9 @@ export const appRoutes = defineAppRoutes([
         i18nKey: "crm.resources.reports",
         i18nOptions: { ns: "starter" },
         descriptionI18nKey: "crm.resources.reports.description",
-        priority: 60,
+        priority: 41,
         icon: <BarChart3 />,
+        parent: navGroupAnalytics,
         description: "Pivot views of pipeline ownership and won revenue.",
         acl: false,
       },

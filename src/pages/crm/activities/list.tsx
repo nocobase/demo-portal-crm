@@ -6,10 +6,6 @@ import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
-import {
-  DataTableFilterCombobox,
-  DataTableFilterDropdownText,
-} from "@/components/data-table/data-table-filter";
 import { DataTableSorter } from "@/components/data-table/data-table-sorter";
 import { DeleteButton } from "@/components/resources/buttons/delete";
 import { EditButton } from "@/components/resources/buttons/edit";
@@ -18,11 +14,14 @@ import { ACTIVITY_TYPES, formatDateTime, labelFor } from "../constants";
 import {
   DEFAULT_PAGE_SIZE,
   ListDateRange,
+  ListFilterSelect,
   ListSearchInput,
   ListToolbar,
-  dateRangeFilter,
+  ListToolbarContent,
+  dateTimeRangeFilter,
   searchFilter,
   useDebouncedValue,
+  useResetPageOnFilterChange,
 } from "../list-controls";
 import { useCustomerOptions } from "../pickers";
 import { EnumBadge, useLocale } from "../shared";
@@ -43,21 +42,25 @@ function ActivityList() {
   const locale = useLocale();
   const { options: customerOptions } = useCustomerOptions();
   const [search, setSearch] = useState("");
+  const [type, setType] = useState("all");
+  const [customer, setCustomer] = useState("all");
   const [loggedFrom, setLoggedFrom] = useState("");
   const [loggedTo, setLoggedTo] = useState("");
   const debouncedSearch = useDebouncedValue(search);
 
-  // Permanent filters sit alongside the per-column filters the header exposes.
+  // The top toolbar is the single filter entry point; column headers only sort.
   const permanentFilters = useMemo(
     () => [
       ...searchFilter(["subject", "notes"], debouncedSearch),
-      ...dateRangeFilter(
-        "date",
-        loggedFrom ? `${loggedFrom}T00:00:00.000Z` : "",
-        loggedTo ? `${loggedTo}T23:59:59.999Z` : ""
-      ),
+      ...(type === "all"
+        ? []
+        : [{ field: "type", operator: "eq" as const, value: type }]),
+      ...(customer === "all"
+        ? []
+        : [{ field: "customer_id", operator: "eq" as const, value: customer }]),
+      ...dateTimeRangeFilter("date", loggedFrom, loggedTo),
     ],
-    [debouncedSearch, loggedFrom, loggedTo]
+    [debouncedSearch, type, customer, loggedFrom, loggedTo]
   );
 
   const typeOptions = useMemo(
@@ -91,20 +94,7 @@ function ActivityList() {
       }),
       columnHelper.accessor("type", {
         id: "type",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.activities.fields.type", { ns: "starter" }, "Type")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={typeOptions}
-              defaultOperator="eq"
-              operators={["eq", "in"]}
-            />
-          </div>
-        ),
+        header: translate("crm.activities.fields.type", { ns: "starter" }, "Type"),
         enableSorting: false,
         cell: ({ getValue }) => {
           const value = getValue() ?? "call";
@@ -113,38 +103,13 @@ function ActivityList() {
       }),
       columnHelper.accessor("subject", {
         id: "subject",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.activities.fields.subject", { ns: "starter" }, "Subject")}
-            </span>
-            <DataTableFilterDropdownText
-              column={column}
-              table={table}
-              defaultOperator="contains"
-              operators={["contains", "eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.activities.fields.subject", { ns: "starter" }, "Subject"),
         enableSorting: false,
         cell: ({ getValue }) => getValue() || "—",
       }),
       columnHelper.accessor((record) => record.customer?.company_name, {
         id: "customer.id",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.activities.fields.customer", { ns: "starter" }, "Customer")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={customerOptions}
-              defaultOperator="eq"
-              operators={["eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.activities.fields.customer", { ns: "starter" }, "Customer"),
         enableSorting: false,
         cell: ({ row }) => row.original.customer?.company_name || "—",
       }),
@@ -183,7 +148,7 @@ function ActivityList() {
         ),
       }),
     ];
-  }, [customerOptions, locale, openChild, typeOptions, translate]);
+  }, [locale, openChild, translate]);
 
   const table = useTable<ActivityRecord>({
     columns,
@@ -197,22 +162,41 @@ function ActivityList() {
     },
   });
 
+  useResetPageOnFilterChange(
+    `${debouncedSearch}|${type}|${customer}|${loggedFrom}|${loggedTo}`,
+    table.refineCore.setCurrentPage
+  );
+
   return (
     <ListView resource="crm_activities">
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.activities.search", { ns: "starter" }, "Search subject or notes")}
-          />
-          <ListDateRange
-            from={loggedFrom}
-            to={loggedTo}
-            onFromChange={setLoggedFrom}
-            onToChange={setLoggedTo}
-            label={translate("crm.activities.fields.date", { ns: "starter" }, "Date")}
-          />
+          <ListToolbarContent>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.activities.search", { ns: "starter" }, "Search subject or notes")}
+            />
+            <ListFilterSelect
+              value={type}
+              onChange={setType}
+              options={typeOptions}
+              allLabel={translate("crm.activities.allTypes", { ns: "starter" }, "All types")}
+            />
+            <ListFilterSelect
+              value={customer}
+              onChange={setCustomer}
+              options={customerOptions}
+              allLabel={translate("crm.common.allCustomers", { ns: "starter" }, "All customers")}
+            />
+            <ListDateRange
+              from={loggedFrom}
+              to={loggedTo}
+              onFromChange={setLoggedFrom}
+              onToChange={setLoggedTo}
+              label={translate("crm.activities.fields.date", { ns: "starter" }, "Date")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
       </div>
       <DataTable

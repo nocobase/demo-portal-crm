@@ -6,10 +6,6 @@ import { useMemo, useState } from "react";
 import { CanAccess } from "@/components/access-control/can-access";
 import { AccessDenied } from "@/components/access-control/access-denied";
 import { DataTable } from "@/components/data-table/data-table";
-import {
-  DataTableFilterCombobox,
-  DataTableFilterDropdownText,
-} from "@/components/data-table/data-table-filter";
 import { DataTableSorter } from "@/components/data-table/data-table-sorter";
 import { DeleteButton } from "@/components/resources/buttons/delete";
 import { EditButton } from "@/components/resources/buttons/edit";
@@ -18,11 +14,15 @@ import { ListView } from "@/components/resources/views/list-view";
 import { CUSTOMER_STATUSES, INDUSTRIES, labelFor } from "../constants";
 import {
   DEFAULT_PAGE_SIZE,
+  ListDateRange,
   ListFilterSelect,
   ListSearchInput,
   ListToolbar,
+  ListToolbarContent,
+  dateTimeRangeFilter,
   searchFilter,
   useDebouncedValue,
+  useResetPageOnFilterChange,
 } from "../list-controls";
 import { useOwnerOptions } from "../pickers";
 import { EnumBadge } from "../shared";
@@ -42,18 +42,29 @@ function CustomerList() {
   const openChild = useOpenContextualChild();
   const { options: ownerOptions } = useOwnerOptions();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [industry, setIndustry] = useState("all");
   const [owner, setOwner] = useState("all");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
   const debouncedSearch = useDebouncedValue(search);
 
-  // Permanent filters sit alongside the per-column filters the header exposes.
+  // The top toolbar is the single filter entry point; column headers only sort.
   const permanentFilters = useMemo(
     () => [
       ...searchFilter(["company_name", "phone", "website"], debouncedSearch),
+      ...(status === "all"
+        ? []
+        : [{ field: "status", operator: "eq" as const, value: status }]),
+      ...(industry === "all"
+        ? []
+        : [{ field: "industry", operator: "eq" as const, value: industry }]),
       ...(owner === "all"
         ? []
         : [{ field: "ownerId", operator: "eq" as const, value: owner }]),
+      ...dateTimeRangeFilter("createdAt", createdFrom, createdTo),
     ],
-    [debouncedSearch, owner]
+    [debouncedSearch, status, industry, owner, createdFrom, createdTo]
   );
 
   const industryOptions = useMemo(
@@ -78,18 +89,12 @@ function CustomerList() {
     return [
       columnHelper.accessor("company_name", {
         id: "company_name",
-        header: ({ column, table }) => (
+        header: ({ column }) => (
           <div className="flex items-center gap-1">
             <span>
               {translate("crm.customers.fields.companyName", { ns: "starter" }, "Company name")}
             </span>
             <DataTableSorter column={column} />
-            <DataTableFilterDropdownText
-              column={column}
-              table={table}
-              defaultOperator="contains"
-              operators={["contains", "eq", "startswith"]}
-            />
           </div>
         ),
         enableSorting: true,
@@ -97,20 +102,7 @@ function CustomerList() {
       }),
       columnHelper.accessor("industry", {
         id: "industry",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.customers.fields.industry", { ns: "starter" }, "Industry")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={industryOptions}
-              defaultOperator="eq"
-              operators={["eq", "in"]}
-            />
-          </div>
-        ),
+        header: translate("crm.customers.fields.industry", { ns: "starter" }, "Industry"),
         enableSorting: false,
         cell: ({ getValue }) => {
           const value = getValue();
@@ -123,20 +115,7 @@ function CustomerList() {
       }),
       columnHelper.accessor("status", {
         id: "status",
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>
-              {translate("crm.customers.fields.status", { ns: "starter" }, "Status")}
-            </span>
-            <DataTableFilterCombobox
-              column={column}
-              table={table}
-              options={statusOptions}
-              defaultOperator="eq"
-              operators={["eq"]}
-            />
-          </div>
-        ),
+        header: translate("crm.customers.fields.status", { ns: "starter" }, "Status"),
         enableSorting: false,
         cell: ({ getValue }) => {
           const value = getValue() ?? "active";
@@ -195,7 +174,7 @@ function CustomerList() {
         ),
       }),
     ];
-  }, [industryOptions, openChild, statusOptions, translate]);
+  }, [openChild, translate]);
 
   const table = useTable<CustomerRecord>({
     columns,
@@ -209,21 +188,47 @@ function CustomerList() {
     },
   });
 
+  useResetPageOnFilterChange(
+    `${debouncedSearch}|${status}|${industry}|${owner}|${createdFrom}|${createdTo}`,
+    table.refineCore.setCurrentPage
+  );
+
   return (
     <ListView resource="crm_customers">
       <div className="rounded-xl border bg-card shadow-sm">
         <ListToolbar>
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={translate("crm.customers.search", { ns: "starter" }, "Search company, phone or website")}
-          />
-          <ListFilterSelect
-            value={owner}
-            onChange={setOwner}
-            options={ownerOptions}
-            allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
-          />
+          <ListToolbarContent>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={translate("crm.customers.search", { ns: "starter" }, "Search company, phone or website")}
+            />
+            <ListFilterSelect
+              value={status}
+              onChange={setStatus}
+              options={statusOptions}
+              allLabel={translate("crm.customers.allStatuses", { ns: "starter" }, "All statuses")}
+            />
+            <ListFilterSelect
+              value={industry}
+              onChange={setIndustry}
+              options={industryOptions}
+              allLabel={translate("crm.customers.allIndustries", { ns: "starter" }, "All industries")}
+            />
+            <ListFilterSelect
+              value={owner}
+              onChange={setOwner}
+              options={ownerOptions}
+              allLabel={translate("crm.common.allOwners", { ns: "starter" }, "All owners")}
+            />
+            <ListDateRange
+              from={createdFrom}
+              to={createdTo}
+              onFromChange={setCreatedFrom}
+              onToChange={setCreatedTo}
+              label={translate("crm.customers.fields.createdAt", { ns: "starter" }, "Customer since")}
+            />
+          </ListToolbarContent>
         </ListToolbar>
       </div>
       <DataTable

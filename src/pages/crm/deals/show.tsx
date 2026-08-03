@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
 import { CrmAIContext, CrmAIShortcut, useDealDetailTasks } from "../ai-assistant";
+import { RecordLink, useOpenRecord } from "../record-links";
 import {
   ACTIVITY_TYPES,
   DEAL_STAGES,
@@ -42,6 +43,7 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
   const translate = useTranslate();
   const locale = useLocale();
   const openChild = useOpenContextualChild();
+  const openRecord = useOpenRecord();
   const closeTo = useContextualCloseTo();
   const params = useParams<Record<string, string>>();
   const id = params[idParam];
@@ -165,7 +167,13 @@ export function DealShow({ idParam = "id" }: { idParam?: string }) {
                   translate("crm.deals.fields.customer", { ns: "starter" }, "Customer"),
                   <span key="customer" className="inline-flex items-center gap-2">
                     <Building2 className="size-4 text-muted-foreground" />
-                    {record?.customer?.company_name || "—"}
+                    <RecordLink
+                      label={record?.customer?.company_name}
+                      onClick={() =>
+                        record?.customer_id &&
+                        openRecord.customer(record.customer_id)
+                      }
+                    />
                   </span>,
                 ],
                 [
@@ -274,7 +282,14 @@ function QuotesSection({
         ) : (
           result.data.map((quote) => (
             <tr key={String(quote.id)}>
-              <td className="px-3 py-2 font-mono font-medium">{quote.quote_number || "—"}</td>
+              <td className="px-3 py-2 font-mono font-medium">
+                <RecordLink
+                  label={quote.quote_number}
+                  onClick={() =>
+                    openChild(`quotes/show/${encodeURIComponent(String(quote.id))}`)
+                  }
+                />
+              </td>
               <td className="px-3 py-2">
                 <EnumBadge value={quote.status ?? "draft"} label={labelFor(QUOTE_STATUSES, quote.status ?? "draft", translate)} />
               </td>
@@ -308,6 +323,7 @@ function ActivitiesSection({
   openChild: OpenChild;
 }) {
   const translate = useTranslate();
+  const openRecord = useOpenRecord();
   const { result } = useList<ActivityRecord>({
     resource: "crm_activities",
     pagination: { mode: "server", currentPage: 1, pageSize: 50 },
@@ -345,7 +361,12 @@ function ActivitiesSection({
               <td className="px-3 py-2">
                 <EnumBadge value={activity.type ?? "call"} label={labelFor(ACTIVITY_TYPES, activity.type ?? "call", translate)} />
               </td>
-              <td className="px-3 py-2 font-medium">{activity.subject || "—"}</td>
+              <td className="px-3 py-2 font-medium">
+                <RecordLink
+                  label={activity.subject}
+                  onClick={() => openRecord.activity(activity.id)}
+                />
+              </td>
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1">
                   <Button
