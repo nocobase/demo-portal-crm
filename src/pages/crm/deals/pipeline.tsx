@@ -1,6 +1,6 @@
 import { useList, useTranslate, useUpdate } from "@refinedev/core";
 import { AlertTriangle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import { ListView } from "@/components/resources/views/list-view";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -174,67 +174,26 @@ export function PipelinePage() {
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {DEAL_STAGES.map((stage) => {
-            const deals = grouped[stage.value] ?? [];
-            const total = deals.reduce(
-              (sum, deal) => sum + Number(deal.amount ?? 0),
-              0
-            );
-            return (
-              <div
-                key={stage.value}
-                data-stage={stage.value}
-                className={cn(
-                  "flex min-h-72 flex-col rounded-xl border bg-muted/25 transition-colors",
-                  dragOverStage === stage.value &&
-                    "border-primary/60 bg-primary/5"
-                )}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragOverStage(stage.value);
-                }}
-                onDragLeave={() => setDragOverStage(null)}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setDragOverStage(null);
-                  const dealId = event.dataTransfer.getData("text/plain");
-                  const deal = result.data.find(
-                    (item) => String(item.id) === dealId
-                  );
-                  if (deal) moveDeal(deal, stage.value);
-                }}
-              >
-                <div className="flex items-baseline justify-between border-b px-3 py-2.5">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold">{labelFor(DEAL_STAGES, stage.value, translate)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {deals.length}
-                    </span>
-                  </div>
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                    {formatCurrency(total, locale)}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
-                  {deals.length === 0 ? (
-                    <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-                      {translate("crm.pipeline.emptyColumn", { ns: "starter" }, "Drop a deal here")}
-                    </p>
-                  ) : (
-                    deals.map((deal) => (
-                      <PipelineCard
-                        key={String(deal.id)}
-                        deal={deal}
-                        locale={locale}
-                        onOpen={() => openChild(`show/${deal.id}`)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex gap-4 overflow-x-auto pb-3">
+          {DEAL_STAGES.map((stage) => (
+            <PipelineColumn
+              key={stage.value}
+              stage={stage}
+              deals={grouped[stage.value] ?? []}
+              locale={locale}
+              isDragOver={dragOverStage === stage.value}
+              onDragEnter={() => setDragOverStage(stage.value)}
+              onDragLeave={() => setDragOverStage(null)}
+              onDropDeal={(dealId) => {
+                setDragOverStage(null);
+                const deal = result.data.find(
+                  (item) => String(item.id) === dealId
+                );
+                if (deal) moveDeal(deal, stage.value);
+              }}
+              onOpen={(id) => openChild(`show/${id}`)}
+            />
+          ))}
         </div>
       )}
     </ListView>
@@ -244,6 +203,114 @@ export function PipelinePage() {
 
 function stageExists(stage: string): boolean {
   return DEAL_STAGES.some((item) => item.value === stage);
+}
+
+// Cards revealed per scroll step. The board keeps the whole (filtered) result in
+// memory, so each column renders a growing window and reveals more as the visitor
+// scrolls to the bottom — keeps long stages light without a second round-trip.
+const COLUMN_PAGE_SIZE = 10;
+
+function PipelineColumn({
+  stage,
+  deals,
+  locale,
+  isDragOver,
+  onDragEnter,
+  onDragLeave,
+  onDropDeal,
+  onOpen,
+}: {
+  stage: (typeof DEAL_STAGES)[number];
+  deals: DealRecord[];
+  locale: string;
+  isDragOver: boolean;
+  onDragEnter: () => void;
+  onDragLeave: () => void;
+  onDropDeal: (dealId: string) => void;
+  onOpen: (id: DealRecord["id"]) => void;
+}) {
+  const translate = useTranslate();
+  const [visible, setVisible] = useState(COLUMN_PAGE_SIZE);
+
+  // Reset the window whenever the underlying (filtered/sorted) set changes.
+  useEffect(() => {
+    setVisible(COLUMN_PAGE_SIZE);
+  }, [deals]);
+
+  const total = deals.reduce((sum, deal) => sum + Number(deal.amount ?? 0), 0);
+  const shown = deals.slice(0, visible);
+  const hasMore = visible < deals.length;
+  const revealMore = () =>
+    setVisible((current) => Math.min(current + COLUMN_PAGE_SIZE, deals.length));
+
+  return (
+    <div
+      data-stage={stage.value}
+      className={cn(
+        "flex max-h-[calc(100vh-15rem)] min-h-72 w-[300px] shrink-0 flex-col rounded-xl border bg-muted/25 transition-colors",
+        isDragOver && "border-primary/60 bg-primary/5"
+      )}
+      onDragOver={(event) => {
+        event.preventDefault();
+        onDragEnter();
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropDeal(event.dataTransfer.getData("text/plain"));
+      }}
+    >
+      <div className="flex items-baseline justify-between border-b px-3 py-2.5">
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold">
+            {labelFor(DEAL_STAGES, stage.value, translate)}
+          </span>
+          <span className="text-xs text-muted-foreground">{deals.length}</span>
+        </div>
+        <span className="text-xs font-medium tabular-nums text-muted-foreground">
+          {formatCurrency(total, locale)}
+        </span>
+      </div>
+      <div
+        className="flex flex-1 flex-col gap-2 overflow-y-auto p-2"
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          if (
+            hasMore &&
+            el.scrollHeight - el.scrollTop - el.clientHeight < 120
+          ) {
+            revealMore();
+          }
+        }}
+      >
+        {deals.length === 0 ? (
+          <p className="px-2 py-6 text-center text-xs text-muted-foreground">
+            {translate("crm.pipeline.emptyColumn", { ns: "starter" }, "Drop a deal here")}
+          </p>
+        ) : (
+          <>
+            {shown.map((deal) => (
+              <PipelineCard
+                key={String(deal.id)}
+                deal={deal}
+                locale={locale}
+                onOpen={() => onOpen(deal.id)}
+              />
+            ))}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={revealMore}
+                className="mt-1 rounded-md border border-dashed py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+              >
+                {translate("crm.pipeline.loadMore", { ns: "starter" }, "Load more")}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function PipelineCard({
